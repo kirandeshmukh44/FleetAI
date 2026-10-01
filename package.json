@@ -1,0 +1,11 @@
+{
+  "name": "ai-based-smart-transportation",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -k -n frontend,backend \"npm --prefix frontend run dev\" \"python backend/run.py\"",
+    "build": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

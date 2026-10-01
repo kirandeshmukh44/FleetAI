@@ -1,0 +1,11 @@
+vehicle_id,registration_number,vehicle_type,make,model,year,fuel_type,status
+VH-001,MH-01-AB-1234,Truck,Tata,Prima,2022,Diesel,ACTIVE
+VH-002,MH-02-CD-5678,Truck,Ashok,Leyland,2021,Diesel,ACTIVE
+VH-003,MH-03-EF-9012,Van,Maruti,Eeco,2023,Petrol,IDLE
+VH-004,MH-04-GH-3456,Truck,Eicher,Pro 2055,2022,Diesel,ACTIVE
+VH-005,MH-05-IJ-7890,Bus,Tata,LPO,2021,Diesel,ACTIVE
+VH-006,MH-06-KL-2345,Truck,Volvo,FH,2023,Diesel,ACTIVE
+VH-007,MH-07-MN-6789,Van,Force,Traveller,2022,Diesel,IDLE
+VH-008,MH-08-OP-0123,Truck,BharatBenz,2828,2021,Diesel,ACTIVE
+VH-009,MH-09-QR-4567,Bus,Ashok,Leyland,2023,Diesel,ACTIVE
+VH-010,MH-10-ST-8901,Truck,Mahindra,Blazo,2022,Diesel,STOPPED

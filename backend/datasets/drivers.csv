@@ -1,0 +1,11 @@
+driver_id,name,email,phone,license_number,license_expiry,status
+DR-001,Rajesh Kumar,rajesh.kumar@email.com,+91-9876543210,MH-2020-001234,2025-12-31,ACTIVE
+DR-002,Amit Singh,amit.singh@email.com,+91-9876543211,MH-2019-005678,2024-06-30,ACTIVE
+DR-003,Priya Sharma,priya.sharma@email.com,+91-9876543212,MH-2021-009012,2026-03-15,ACTIVE
+DR-004,Suresh Patil,suresh.patil@email.com,+91-9876543213,MH-2018-013456,2024-11-20,ACTIVE
+DR-005,Anita Desai,anita.desai@email.com,+91-9876543214,MH-2022-017890,2027-01-10,ACTIVE
+DR-006,Vikram Mehta,vikram.mehta@email.com,+91-9876543215,MH-2020-021234,2025-08-25,ACTIVE
+DR-007,Deepak Reddy,deepak.reddy@email.com,+91-9876543216,MH-2019-025678,2024-09-30,ACTIVE
+DR-008,Kavita Nair,kavita.nair@email.com,+91-9876543217,MH-2021-029012,2026-05-15,ACTIVE
+DR-009,Rahul Joshi,rahul.joshi@email.com,+91-9876543218,MH-2020-033456,2025-12-01,ACTIVE
+DR-010,Meena Gupta,meena.gupta@email.com,+91-9876543219,MH-2022-037890,2027-07-20,ACTIVE
