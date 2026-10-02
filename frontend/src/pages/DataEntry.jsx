@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import '../styles/data-entry.css';
 import {
@@ -14,6 +14,9 @@ import {
   MdWarning,
   MdSave,
   MdEditNote,
+  MdAutoAwesome,
+  MdAccessTime,
+  MdLocalGasStation,
 } from 'react-icons/md';
 
 /* ── Tab definitions ────────────────────────────────────────── */
@@ -22,6 +25,105 @@ const TABS = [
   { key: 'driver',  label: 'Drivers',  Icon: MdPeople },
   { key: 'journey', label: 'Journeys', Icon: MdRoute },
 ];
+
+/* ── City coordinates & distance lookup dictionary ──────────── */
+const KNOWN_HUBS = {
+  mumbai:    { lat: 19.0760, lng: 72.8777, name: 'Mumbai' },
+  pune:      { lat: 18.5204, lng: 73.8567, name: 'Pune' },
+  solapur:   { lat: 17.6599, lng: 75.9064, name: 'Solapur' },
+  nashik:    { lat: 19.9975, lng: 73.7898, name: 'Nashik' },
+  aurangabad:{ lat: 19.8762, lng: 75.3433, name: 'Aurangabad' },
+  nagpur:    { lat: 21.1458, lng: 79.0882, name: 'Nagpur' },
+  thane:     { lat: 19.2183, lng: 72.9781, name: 'Thane' },
+  kolhapur:  { lat: 16.7050, lng: 74.2433, name: 'Kolhapur' },
+  delhi:     { lat: 28.6139, lng: 77.2090, name: 'Delhi' },
+  bangalore: { lat: 12.9716, lng: 77.5946, name: 'Bangalore' },
+  hyderabad: { lat: 17.3850, lng: 78.4867, name: 'Hyderabad' },
+  ahmedabad: { lat: 23.0225, lng: 72.5714, name: 'Ahmedabad' },
+  chennai:   { lat: 13.0827, lng: 80.2707, name: 'Chennai' },
+  kolkata:   { lat: 22.5726, lng: 88.3639, name: 'Kolkata' },
+};
+
+/* Known highway distances in km */
+const DIRECT_DISTANCES = {
+  'mumbai-pune': 150,
+  'pune-mumbai': 150,
+  'mumbai-solapur': 400,
+  'solapur-mumbai': 400,
+  'pune-solapur': 250,
+  'solapur-pune': 250,
+  'mumbai-nashik': 165,
+  'nashik-mumbai': 165,
+  'mumbai-nagpur': 815,
+  'nagpur-mumbai': 815,
+  'pune-nagpur': 710,
+  'nagpur-pune': 710,
+  'mumbai-kolhapur': 380,
+  'kolhapur-mumbai': 380,
+  'pune-kolhapur': 235,
+  'kolhapur-pune': 235,
+  'mumbai-thane': 35,
+  'thane-mumbai': 35,
+  'mumbai-delhi': 1410,
+  'delhi-mumbai': 1410,
+  'mumbai-bangalore': 985,
+  'bangalore-mumbai': 985,
+  'mumbai-hyderabad': 710,
+  'hyderabad-mumbai': 710,
+  'mumbai-ahmedabad': 525,
+  'ahmedabad-mumbai': 525,
+};
+
+function calculateRouteStats(start, end, vehicleType) {
+  if (!start || !end) return null;
+  const s = start.trim().toLowerCase();
+  const e = end.trim().toLowerCase();
+  if (s === e) return { distance: 10, duration: 20, fuel: 1.5 };
+
+  let startKey = Object.keys(KNOWN_HUBS).find((k) => s.includes(k));
+  let endKey = Object.keys(KNOWN_HUBS).find((k) => e.includes(k));
+
+  let distanceKm = 0;
+  if (startKey && endKey) {
+    const pair = `${startKey}-${endKey}`;
+    if (DIRECT_DISTANCES[pair]) {
+      distanceKm = DIRECT_DISTANCES[pair];
+    } else {
+      // Haversine route approximation with 1.3x road winding factor
+      const c1 = KNOWN_HUBS[startKey];
+      const c2 = KNOWN_HUBS[endKey];
+      const R = 6371;
+      const dLat = ((c2.lat - c1.lat) * Math.PI) / 180;
+      const dLng = ((c2.lng - c1.lng) * Math.PI) / 180;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((c1.lat * Math.PI) / 180) *
+          Math.cos((c2.lat * Math.PI) / 180) *
+          Math.sin(dLng / 2) ** 2;
+      distanceKm = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 1.28);
+    }
+  } else {
+    // Estimator for generic locations
+    distanceKm = 180;
+  }
+
+  // Speed estimation based on vehicle type
+  const avgSpeed = vehicleType === 'Truck' ? 45 : vehicleType === 'Bus' ? 50 : 60; // km/h
+  const durationMin = Math.round((distanceKm / avgSpeed) * 60);
+
+  // Fuel consumption: km/L curve
+  const kmPerLiter =
+    vehicleType === 'Truck'
+      ? 4.0
+      : vehicleType === 'Bus'
+      ? 5.0
+      : vehicleType === 'Van'
+      ? 9.5
+      : 14.0;
+  const fuelLiters = +(distanceKm / kmPerLiter).toFixed(1);
+
+  return { distance: distanceKm, duration: durationMin, fuel: fuelLiters };
+}
 
 /* ── Field configs ──────────────────────────────────────────── */
 const VEHICLE_FIELDS = [
@@ -49,16 +151,16 @@ const DRIVER_FIELDS = [
 
 const JOURNEY_FIELDS = [
   { name: 'journey_id',     label: 'Journey ID',          type: 'text',   required: true,  placeholder: 'e.g. JR-001' },
-  { name: 'vehicle_id',     label: 'Vehicle (DB ID)',      type: 'number', required: true,  placeholder: 'Numeric vehicle DB ID' },
-  { name: 'driver_id',      label: 'Driver (DB ID)',       type: 'number', required: true,  placeholder: 'Numeric driver DB ID' },
-  { name: 'start_time',     label: 'Start Time',           type: 'datetime-local', required: true },
-  { name: 'end_time',       label: 'End Time',             type: 'datetime-local', required: false },
-  { name: 'start_location', label: 'Start Location',       type: 'text',   required: false, placeholder: 'e.g. Mumbai Central' },
-  { name: 'end_location',   label: 'End Location',         type: 'text',   required: false, placeholder: 'e.g. Pune Station' },
-  { name: 'distance',       label: 'Distance (km)',        type: 'number', required: false, placeholder: '0.0', min: 0 },
-  { name: 'duration',       label: 'Duration (min)',       type: 'number', required: false, placeholder: '0', min: 0 },
-  { name: 'fuel_consumed',  label: 'Fuel Consumed (L)',    type: 'number', required: false, placeholder: '0.0', min: 0 },
-  { name: 'status',         label: 'Status',               type: 'select', required: false, options: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'] },
+  { name: 'vehicle_id',     label: 'Assigned Vehicle',    type: 'vehicle_select', required: true },
+  { name: 'driver_id',      label: 'Assigned Driver',     type: 'driver_select',  required: true },
+  { name: 'start_location', label: 'Starting Point',      type: 'text',   required: true,  placeholder: 'e.g. Mumbai or Pune' },
+  { name: 'end_location',   label: 'Ending Destination',  type: 'text',   required: true,  placeholder: 'e.g. Solapur, Nashik, or Delhi' },
+  { name: 'start_time',     label: 'Departure Time',      type: 'datetime-local', required: true },
+  { name: 'end_time',       label: 'Estimated Arrival',   type: 'datetime-local', required: false },
+  { name: 'distance',       label: 'Distance (km)',        type: 'number', required: false, placeholder: 'Auto-calculated' },
+  { name: 'duration',       label: 'Duration (min)',       type: 'number', required: false, placeholder: 'Auto-calculated' },
+  { name: 'fuel_consumed',  label: 'Fuel Required (L)',    type: 'number', required: false, placeholder: 'Auto-calculated' },
+  { name: 'status',         label: 'Journey Status',       type: 'select', required: false, options: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'] },
 ];
 
 const CONFIG = {
@@ -94,9 +196,12 @@ const CONFIG = {
     rowKey:   'journey_id',
     columns:  [
       { label: 'Journey ID',     key: 'journey_id' },
+      { label: 'Vehicle',        key: 'vehicle_label' },
+      { label: 'Driver',         key: 'driver_name' },
       { label: 'Start Location', key: 'start_location' },
       { label: 'End Location',   key: 'end_location' },
-      { label: 'Distance (km)',  key: 'distance' },
+      { label: 'Distance',       key: 'distance', suffix: ' km' },
+      { label: 'Fuel',           key: 'fuel_consumed', suffix: ' L' },
       { label: 'Status',         key: 'status', chip: true },
     ],
     defaultValues: { status: 'IN_PROGRESS' },
@@ -132,9 +237,57 @@ function Chip({ value }) {
 }
 
 /* ── Field renderer ─────────────────────────────────────────── */
-function FormField({ field, value, onChange, error }) {
-  const baseStyle = { background: '#0c0e18', border: `1px solid ${error ? '#ef4444' : 'rgba(255,255,255,0.12)'}`, borderRadius: 9, color: '#e9e9f0', display: 'block', fontSize: 13, marginTop: 6, minHeight: 40, padding: '0 12px', width: '100%', transition: 'border-color 0.18s' };
+function FormField({ field, value, onChange, error, vehicleList = [], driverList = [] }) {
+  const baseStyle = {
+    background: '#0c0e18',
+    border: `1px solid ${error ? '#ef4444' : 'rgba(255,255,255,0.12)'}`,
+    borderRadius: 9,
+    color: '#e9e9f0',
+    display: 'block',
+    fontSize: 13,
+    marginTop: 6,
+    minHeight: 40,
+    padding: '0 12px',
+    width: '100%',
+    transition: 'border-color 0.18s',
+  };
   const focusStyle = { outline: 'none', borderColor: error ? '#ef4444' : '#9a75ff' };
+
+  if (field.type === 'vehicle_select') {
+    return (
+      <select
+        id={`field-${field.name}`}
+        value={value || ''}
+        onChange={(e) => onChange(field.name, e.target.value)}
+        style={baseStyle}
+      >
+        <option value="">Choose an available vehicle…</option>
+        {vehicleList.map((v) => (
+          <option key={v.id} value={v.id}>
+            {v.vehicle_id} — {v.registration_number} ({v.vehicle_type || 'Vehicle'}, Status: {v.status || 'READY'})
+          </option>
+        ))}
+      </select>
+    );
+  }
+
+  if (field.type === 'driver_select') {
+    return (
+      <select
+        id={`field-${field.name}`}
+        value={value || ''}
+        onChange={(e) => onChange(field.name, e.target.value)}
+        style={baseStyle}
+      >
+        <option value="">Choose an available driver…</option>
+        {driverList.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.driver_id} — {d.name} ({d.phone || 'No phone'}, Status: {d.status || 'AVAILABLE'})
+          </option>
+        ))}
+      </select>
+    );
+  }
 
   if (field.type === 'select') {
     return (
@@ -172,6 +325,8 @@ function FormField({ field, value, onChange, error }) {
 const DataEntry = () => {
   const [activeTab, setActiveTab] = useState('vehicle');
   const [records, setRecords] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({});
   const [formErrors, setFormErrors] = useState({});
@@ -180,10 +335,11 @@ const DataEntry = () => {
   const [editingId, setEditingId] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
 
   const cfg = CONFIG[activeTab];
 
-  /* ── Fetch records ───────────────────────────────────────── */
+  /* ── Fetch records & relations ────────────────────────────── */
   const fetchRecords = useCallback(async () => {
     setLoading(true);
     try {
@@ -196,6 +352,12 @@ const DataEntry = () => {
     }
   }, [activeTab, cfg.apiPath]);
 
+  // Load available vehicles and drivers for journey creation
+  useEffect(() => {
+    api.get('/vehicles').then((res) => setVehicles(res.data || [])).catch(() => {});
+    api.get('/drivers').then((res) => setDrivers(res.data || [])).catch(() => {});
+  }, []);
+
   useEffect(() => {
     setRecords([]);
     setNotice({ type: '', msg: '' });
@@ -204,11 +366,52 @@ const DataEntry = () => {
     fetchRecords();
   }, [activeTab, fetchRecords]);
 
+  /* ── Auto-calculation when start/end location or vehicle changes in Journey ── */
+  useEffect(() => {
+    if (activeTab !== 'journey' || !formOpen) return;
+    const { start_location, end_location, vehicle_id, start_time } = formData;
+    if (start_location && end_location && start_location.trim().length >= 3 && end_location.trim().length >= 3) {
+      const chosenVehicle = vehicles.find((v) => String(v.id) === String(vehicle_id));
+      const vType = chosenVehicle?.vehicle_type || 'Truck';
+      const stats = calculateRouteStats(start_location, end_location, vType);
+      if (stats) {
+        setFormData((prev) => {
+          let updated = {
+            ...prev,
+            distance: stats.distance,
+            duration: stats.duration,
+            fuel_consumed: stats.fuel,
+          };
+          // Calculate auto arrival time if departure is selected
+          if (start_time) {
+            const startDt = new Date(start_time);
+            if (!isNaN(startDt.getTime())) {
+              const arrivalDt = new Date(startDt.getTime() + stats.duration * 60000);
+              const isoArrival = arrivalDt.toISOString().slice(0, 16);
+              updated.end_time = isoArrival;
+            }
+          }
+          return updated;
+        });
+        setAutoFilled(true);
+      }
+    }
+  }, [formData.start_location, formData.end_location, formData.vehicle_id, formData.start_time, activeTab, formOpen, vehicles]);
+
   /* ── Form handlers ───────────────────────────────────────── */
   const openNewForm = () => {
-    setFormData({ ...cfg.defaultValues });
+    let defaults = { ...cfg.defaultValues };
+    if (activeTab === 'journey') {
+      const now = new Date();
+      defaults.start_time = now.toISOString().slice(0, 16);
+      defaults.journey_id = `JR-${String(records.length + 1).padStart(3, '0')}`;
+      if (vehicles.length > 0) defaults.vehicle_id = vehicles[0].id;
+      if (drivers.length > 0) defaults.driver_id = drivers[0].id;
+    }
+    setFormData(defaults);
     setFormErrors({});
     setEditingId(null);
+    setAutoFilled(false);
     setFormOpen(true);
     setNotice({ type: '', msg: '' });
   };
@@ -217,6 +420,7 @@ const DataEntry = () => {
     setFormData({ ...record });
     setFormErrors({});
     setEditingId(record.id);
+    setAutoFilled(false);
     setFormOpen(true);
     setNotice({ type: '', msg: '' });
   };
@@ -225,6 +429,7 @@ const DataEntry = () => {
     setFormOpen(false);
     setEditingId(null);
     setFormErrors({});
+    setAutoFilled(false);
   };
 
   const handleChange = (name, value) => {
@@ -262,12 +467,12 @@ const DataEntry = () => {
     setSubmitting(true);
     setNotice({ type: '', msg: '' });
 
-    // clean up empty strings → null for optional fields
     const payload = {};
     cfg.fields.forEach((f) => {
       let v = formData[f.name];
       if (v === '' || v === undefined) v = null;
       if (f.type === 'number' && v !== null) v = Number(v);
+      if (f.type === 'vehicle_select' || f.type === 'driver_select') v = Number(v);
       payload[f.name] = v;
     });
 
@@ -298,7 +503,6 @@ const DataEntry = () => {
       await fetchRecords();
     } catch (err) {
       setNotice({ type: 'error', msg: err.response?.data?.error || 'Delete failed.' });
-      setDeleteConfirm(null);
     }
   };
 
@@ -308,60 +512,78 @@ const DataEntry = () => {
       <div className="de-header">
         <div>
           <div className="de-eyebrow"><span /> DATA MANAGEMENT</div>
-          <h1>Data Entry<span>.</span></h1>
-          <p>Add, update, and manage vehicles, drivers, and journeys in the fleet database.</p>
+          <h1>Fleet Data Entry<span>.</span></h1>
+          <p>Add, update, and manage vehicle telemetry, registered drivers, and dispatch journeys.</p>
         </div>
         <div className="de-header-actions">
-          <button className="de-btn primary" onClick={openNewForm} id="add-record-btn">
+          <button
+            className="de-btn primary"
+            onClick={openNewForm}
+            id="add-record-btn"
+          >
             <MdAdd size={18} /> Add {activeTab}
           </button>
-          <button className="de-btn subtle" onClick={fetchRecords} disabled={loading} id="refresh-records-btn">
+          <button
+            className="de-btn subtle"
+            onClick={fetchRecords}
+            disabled={loading}
+            id="refresh-btn"
+          >
             <MdRefresh size={18} className={loading ? 'spin-icon' : ''} /> Refresh
           </button>
         </div>
       </div>
 
+      {/* Notice */}
+      {notice.msg && (
+        <div className={`de-notice ${notice.type}`} role="status">
+          <span className="de-notice-icon">
+            {notice.type === 'success' ? <MdCheck size={16} /> : <MdWarning size={16} />}
+          </span>
+          <span>{notice.msg}</span>
+          <button
+            className="de-notice-close"
+            onClick={() => setNotice({ type: '', msg: '' })}
+            aria-label="Dismiss message"
+          >
+            <MdClose size={15} />
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="de-tabs" role="tablist">
-        {TABS.map((t) => (
+        {TABS.map((tab) => (
           <button
-            key={t.key}
-            className={`de-tab ${activeTab === t.key ? 'is-active' : ''}`}
-            onClick={() => setActiveTab(t.key)}
+            key={tab.key}
             role="tab"
-            aria-selected={activeTab === t.key}
-            id={`tab-${t.key}`}
+            aria-selected={activeTab === tab.key}
+            className={`de-tab ${activeTab === tab.key ? 'is-active' : ''}`}
+            onClick={() => setActiveTab(tab.key)}
           >
-            <t.Icon size={16} />
-            {t.label}
-            <span className="de-tab-count">{activeTab === t.key ? records.length : ''}</span>
+            <tab.Icon size={17} />
+            <span>{tab.label}</span>
+            {records.length > 0 && activeTab === tab.key && (
+              <span className="de-tab-count">{records.length}</span>
+            )}
           </button>
         ))}
       </div>
 
-      {/* Notice */}
-      {notice.msg && (
-        <div className={`de-notice ${notice.type}`} role="alert">
-          {notice.type === 'success' ? <MdCheck size={16} /> : <MdWarning size={16} />}
-          <span>{notice.msg}</span>
-          <button onClick={() => setNotice({ type: '', msg: '' })} aria-label="Dismiss"><MdClose size={15} /></button>
-        </div>
-      )}
-
-      {/* Records table */}
-      <div className="de-table-card">
+      {/* Main card */}
+      <div className="de-card">
         {loading ? (
           <div className="de-loading">
             <span className="loading-spinner" style={{ color: '#9c70ff' }} />
-            <span>Loading records…</span>
+            <span>Loading {activeTab} records…</span>
           </div>
         ) : records.length === 0 ? (
           <div className="de-empty">
             <MdEditNote size={36} />
             <b>No {activeTab} records found</b>
-            <p>Click "Add {activeTab}" to create your first entry, or import data from the Dashboard.</p>
-            <button className="de-btn primary sm" onClick={openNewForm}>
-              <MdAdd size={16} /> Add first {activeTab}
+            <p>Add your first {activeTab} using the button above.</p>
+            <button className="de-btn primary" onClick={openNewForm}>
+              <MdAdd size={16} /> Add {activeTab}
             </button>
           </div>
         ) : (
@@ -440,6 +662,27 @@ const DataEntry = () => {
               </button>
             </div>
 
+            {/* Smart calculation banner for Journey */}
+            {activeTab === 'journey' && autoFilled && (
+              <div style={{
+                background: 'linear-gradient(90deg, rgba(65, 142, 255, 0.12), rgba(168, 85, 247, 0.12))',
+                border: '1px solid rgba(139, 92, 246, 0.35)',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                marginBottom: '16px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                fontSize: '12px',
+                color: '#c4b5fd'
+              }}>
+                <MdAutoAwesome size={18} color="#a855f7" />
+                <span>
+                  <strong>AI Route Calculator Active:</strong> Distance, ETA, and fuel requirements calculated automatically from chosen route coordinates and vehicle efficiency.
+                </span>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} noValidate>
               <div className="de-form-grid">
                 {cfg.fields.map((field) => (
@@ -456,6 +699,8 @@ const DataEntry = () => {
                       value={formData[field.name]}
                       onChange={handleChange}
                       error={formErrors[field.name]}
+                      vehicleList={vehicles}
+                      driverList={drivers}
                     />
                     {formErrors[field.name] && (
                       <span className="de-field-error">{formErrors[field.name]}</span>

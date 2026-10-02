@@ -1,291 +1,379 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
+import '../styles/settings.css';
 
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, checkAuth } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
+  const [notice, setNotice] = useState({ type: '', text: '' });
+  const [saving, setSaving] = useState(false);
+
+  // Profile Form State
+  const [username, setUsername] = useState(user?.username || '');
+  const [email, setEmail] = useState(user?.email || '');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+
+  // System Form State
+  const [companyName, setCompanyName] = useState('FleetAI Transportation');
+  const [timezone, setTimezone] = useState('Asia/Kolkata (IST)');
+  const [dateFormat, setDateFormat] = useState('DD/MM/YYYY');
+  const [darkMode, setDarkMode] = useState(true);
+
+  // Risk Thresholds State
+  const [highRisk, setHighRisk] = useState(70);
+  const [medRisk, setMedRisk] = useState(50);
+  const [speedLimit, setSpeedLimit] = useState(80);
+  const [harshBrake, setHarshBrake] = useState(3.0);
+
+  // Notifications State
+  const [notifications, setNotifications] = useState({
+    highRiskAlerts: true,
+    fuelAlerts: true,
+    offlineAlerts: true,
+    harshAlerts: true,
+    emailAlerts: false,
+    smsAlerts: false,
+  });
+
+  useEffect(() => {
+    if (user) {
+      setUsername(user.username || '');
+      setEmail(user.email || '');
+    }
+  }, [user]);
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setNotice({ type: '', text: '' });
+    try {
+      const payload = { username, email };
+      if (newPassword) {
+        payload.current_password = currentPassword;
+        payload.new_password = newPassword;
+      }
+      const response = await api.put('/auth/profile', payload);
+      setNotice({ type: 'success', text: response.data?.message || 'Profile updated successfully!' });
+      setCurrentPassword('');
+      setNewPassword('');
+      if (checkAuth) await checkAuth();
+    } catch (err) {
+      setNotice({
+        type: 'error',
+        text: err.response?.data?.error || 'Failed to update profile settings.'
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGenericSave = (label) => {
+    setNotice({ type: 'success', text: `${label} preferences saved successfully.` });
+    setTimeout(() => setNotice({ type: '', text: '' }), 4000);
+  };
 
   const tabs = [
-    { id: 'profile', name: 'Profile', icon: '👤' },
-    { id: 'system', name: 'System', icon: '⚙️' },
+    { id: 'profile', name: 'Profile Settings', icon: '👤' },
+    { id: 'system', name: 'System Settings', icon: '⚙️' },
     { id: 'risk', name: 'Risk Thresholds', icon: '⚠️' },
-    { id: 'notifications', name: 'Notifications', icon: '🔔' },
+    { id: 'notifications', name: 'Notification Rules', icon: '🔔' },
   ];
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
-        <p className="text-muted">Configure system settings and preferences</p>
+    <div className="settings-page">
+      <div className="settings-header">
+        <div className="settings-eyebrow"><span /> PREFERENCES & CONFIGURATION</div>
+        <h1>Workspace Settings<span>.</span></h1>
+        <p>Configure user credentials, telemetry thresholds, and system preferences.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Sidebar */}
-        <div className="glass-card">
-          <div className="space-y-2">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
-                  activeTab === tab.id
-                    ? 'bg-electric-blue/20 text-electric-blue'
-                    : 'text-muted hover:bg-white/5'
-                }`}
-              >
-                <span className="text-xl">{tab.icon}</span>
-                <span>{tab.name}</span>
-              </button>
-            ))}
-          </div>
+      {notice.text && (
+        <div className={`settings-notice ${notice.type}`} role="alert">
+          <span>{notice.type === 'success' ? '✓' : '⚠️'}</span>
+          <span>{notice.text}</span>
         </div>
+      )}
 
-        {/* Content */}
-        <div className="lg:col-span-3 glass-card">
+      <div className="settings-layout">
+        {/* Navigation Tabs */}
+        <aside className="settings-nav" aria-label="Settings categories">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(tab.id);
+                setNotice({ type: '', text: '' });
+              }}
+              className={`settings-tab-btn ${activeTab === tab.id ? 'is-active' : ''}`}
+            >
+              <span className="settings-tab-icon">{tab.icon}</span>
+              <span>{tab.name}</span>
+            </button>
+          ))}
+        </aside>
+
+        {/* Content Section */}
+        <section className="settings-content-card">
           {activeTab === 'profile' && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Profile Settings</h3>
-              
-              <div className="flex items-center gap-6 mb-6">
-                <div className="w-20 h-20 rounded-full bg-electric-blue flex items-center justify-center text-3xl font-bold">
-                  {user?.username?.[0]?.toUpperCase()}
+            <div>
+              <div className="settings-section-head">
+                <h2>Account Profile</h2>
+                <p>Manage your account credentials, role details, and security.</p>
+              </div>
+
+              <div className="settings-profile-badge-row">
+                <div className="settings-avatar-large">
+                  {user?.username?.[0]?.toUpperCase() || 'A'}
                 </div>
-                <div>
-                  <h4 className="text-lg font-semibold text-white">{user?.username}</h4>
-                  <p className="text-muted">{user?.email}</p>
-                  <p className="text-sm text-muted">Role: {user?.role}</p>
+                <div className="settings-profile-meta">
+                  <h3>{user?.username || 'Administrator'}</h3>
+                  <p>{user?.email || 'admin@fleetai.com'}</p>
+                  <span className="settings-role-tag">
+                    Role: {user?.role || 'Fleet Admin'}
+                  </span>
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Username</span>
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue={user?.username}
-                    className="input input-bordered bg-navy-blue border-white/20 text-white"
-                  />
+              <form onSubmit={handleProfileSubmit}>
+                <div className="settings-form-grid">
+                  <div className="settings-field">
+                    <label className="settings-label">Username</label>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      className="settings-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Email Address</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="settings-input"
+                      required
+                    />
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Current Password</label>
+                    <input
+                      type="password"
+                      placeholder="Required only to change password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="settings-input"
+                    />
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">New Password</label>
+                    <input
+                      type="password"
+                      placeholder="Leave blank to keep current"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className="settings-input"
+                    />
+                  </div>
                 </div>
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Email</span>
-                  </label>
-                  <input
-                    type="email"
-                    defaultValue={user?.email}
-                    className="input input-bordered bg-navy-blue border-white/20 text-white"
-                  />
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Current Password</span>
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Enter current password"
-                    className="input input-bordered bg-navy-blue border-white/20 text-white"
-                  />
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">New Password</span>
-                  </label>
-                  <input
-                    type="password"
-                    placeholder="Enter new password"
-                    className="input input-bordered bg-navy-blue border-white/20 text-white"
-                  />
-                </div>
-
-                <button className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
-                  Save Changes
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="settings-submit-btn"
+                >
+                  {saving ? 'Saving Changes…' : 'Save Changes'}
                 </button>
-              </div>
+              </form>
             </div>
           )}
 
           {activeTab === 'system' && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-white mb-4">System Configuration</h3>
-              
-              <div className="space-y-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Company Name</span>
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="FleetAI Transportation"
-                    className="input input-bordered bg-navy-blue border-white/20 text-white"
-                  />
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Timezone</span>
-                  </label>
-                  <select className="select select-bordered bg-navy-blue border-white/20 text-white">
-                    <option>Asia/Kolkata (IST)</option>
-                    <option>UTC</option>
-                    <option>America/New_York (EST)</option>
-                  </select>
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Date Format</span>
-                  </label>
-                  <select className="select select-bordered bg-navy-blue border-white/20 text-white">
-                    <option>DD/MM/YYYY</option>
-                    <option>MM/DD/YYYY</option>
-                    <option>YYYY-MM-DD</option>
-                  </select>
-                </div>
-
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <span className="label-text text-white">Enable Dark Mode</span>
-                    <input type="checkbox" defaultChecked className="checkbox checkbox-primary" />
-                  </label>
-                </div>
-
-                <button className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
-                  Save Configuration
-                </button>
+            <div>
+              <div className="settings-section-head">
+                <h2>System Configuration</h2>
+                <p>Configure regional preferences, timezones, and display styling.</p>
               </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleGenericSave('System'); }}>
+                <div className="settings-form-grid">
+                  <div className="settings-field">
+                    <label className="settings-label">Organization Name</label>
+                    <input
+                      type="text"
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="settings-input"
+                    />
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Timezone</label>
+                    <select
+                      value={timezone}
+                      onChange={(e) => setTimezone(e.target.value)}
+                      className="settings-select"
+                    >
+                      <option>Asia/Kolkata (IST)</option>
+                      <option>UTC</option>
+                      <option>America/New_York (EST)</option>
+                      <option>Europe/London (GMT)</option>
+                    </select>
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Date Format</label>
+                    <select
+                      value={dateFormat}
+                      onChange={(e) => setDateFormat(e.target.value)}
+                      className="settings-select"
+                    >
+                      <option>DD/MM/YYYY</option>
+                      <option>MM/DD/YYYY</option>
+                      <option>YYYY-MM-DD</option>
+                    </select>
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Display Theme</label>
+                    <label className="settings-checkbox-card">
+                      <span>Dark Telemetry Mode</span>
+                      <input
+                        type="checkbox"
+                        checked={darkMode}
+                        onChange={(e) => setDarkMode(e.target.checked)}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <button type="submit" className="settings-submit-btn">
+                  Save System Configuration
+                </button>
+              </form>
             </div>
           )}
 
           {activeTab === 'risk' && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Risk Thresholds</h3>
-              
-              <div className="space-y-4">
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">High Risk Threshold (%)</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="50"
-                    max="100"
-                    defaultValue="70"
-                    className="range range-primary"
-                  />
-                  <div className="flex justify-between text-xs text-muted">
-                    <span>50%</span>
-                    <span>70%</span>
-                    <span>100%</span>
-                  </div>
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Medium Risk Threshold (%)</span>
-                  </label>
-                  <input
-                    type="range"
-                    min="30"
-                    max="70"
-                    defaultValue="50"
-                    className="range range-primary"
-                  />
-                  <div className="flex justify-between text-xs text-muted">
-                    <span>30%</span>
-                    <span>50%</span>
-                    <span>70%</span>
-                  </div>
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Speed Limit (km/h)</span>
-                  </label>
-                  <input
-                    type="number"
-                    defaultValue="80"
-                    className="input input-bordered bg-navy-blue border-white/20 text-white"
-                  />
-                </div>
-
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text text-white">Harsh Braking Threshold (m/s²)</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    defaultValue="3.0"
-                    className="input input-bordered bg-navy-blue border-white/20 text-white"
-                  />
-                </div>
-
-                <button className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
-                  Save Thresholds
-                </button>
+            <div>
+              <div className="settings-section-head">
+                <h2>AI Risk Thresholds</h2>
+                <p>Set sensitivity levels for machine learning safety alerts and speeding.</p>
               </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleGenericSave('Risk thresholds'); }}>
+                <div className="settings-form-grid">
+                  <div className="settings-field">
+                    <label className="settings-label">High Risk Severity Threshold ({highRisk}%)</label>
+                    <div className="settings-range-box">
+                      <input
+                        type="range"
+                        min="50"
+                        max="100"
+                        value={highRisk}
+                        onChange={(e) => setHighRisk(Number(e.target.value))}
+                      />
+                      <div className="settings-range-labels">
+                        <span>50%</span>
+                        <span>{highRisk}%</span>
+                        <span>100%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Medium Risk Warning Threshold ({medRisk}%)</label>
+                    <div className="settings-range-box">
+                      <input
+                        type="range"
+                        min="20"
+                        max="65"
+                        value={medRisk}
+                        onChange={(e) => setMedRisk(Number(e.target.value))}
+                      />
+                      <div className="settings-range-labels">
+                        <span>20%</span>
+                        <span>{medRisk}%</span>
+                        <span>65%</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Speeding Alert Limit (km/h)</label>
+                    <input
+                      type="number"
+                      value={speedLimit}
+                      onChange={(e) => setSpeedLimit(Number(e.target.value))}
+                      className="settings-input"
+                    />
+                  </div>
+
+                  <div className="settings-field">
+                    <label className="settings-label">Harsh Braking G-Force (m/s²)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={harshBrake}
+                      onChange={(e) => setHarshBrake(Number(e.target.value))}
+                      className="settings-input"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="settings-submit-btn">
+                  Save Risk Thresholds
+                </button>
+              </form>
             </div>
           )}
 
           {activeTab === 'notifications' && (
-            <div className="space-y-6">
-              <h3 className="text-xl font-semibold text-white mb-4">Notification Preferences</h3>
-              
-              <div className="space-y-4">
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <span className="label-text text-white">High Risk Alerts</span>
-                    <input type="checkbox" defaultChecked className="checkbox checkbox-primary" />
-                  </label>
-                </div>
-
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <span className="label-text text-white">Fuel Efficiency Alerts</span>
-                    <input type="checkbox" defaultChecked className="checkbox checkbox-primary" />
-                  </label>
-                </div>
-
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <span className="label-text text-white">Vehicle Offline Alerts</span>
-                    <input type="checkbox" defaultChecked className="checkbox checkbox-primary" />
-                  </label>
-                </div>
-
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <span className="label-text text-white">Harsh Event Notifications</span>
-                    <input type="checkbox" defaultChecked className="checkbox checkbox-primary" />
-                  </label>
-                </div>
-
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <span className="label-text text-white">Email Notifications</span>
-                    <input type="checkbox" className="checkbox checkbox-primary" />
-                  </label>
-                </div>
-
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <span className="label-text text-white">SMS Notifications</span>
-                    <input type="checkbox" className="checkbox checkbox-primary" />
-                  </label>
-                </div>
-
-                <button className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
-                  Save Preferences
-                </button>
+            <div>
+              <div className="settings-section-head">
+                <h2>Notification Preferences</h2>
+                <p>Choose which fleet alerts dispatch notifications to your dashboard.</p>
               </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleGenericSave('Notification rules'); }}>
+                <div className="settings-form-grid">
+                  {[
+                    { key: 'highRiskAlerts', label: 'High Risk Incident Alerts' },
+                    { key: 'fuelAlerts', label: 'Fuel Anomaly & Level Alerts' },
+                    { key: 'offlineAlerts', label: 'Vehicle Offline / Disconnect' },
+                    { key: 'harshAlerts', label: 'Harsh Braking & Acceleration' },
+                    { key: 'emailAlerts', label: 'Email Digest Notifications' },
+                    { key: 'smsAlerts', label: 'SMS Critical Priority Alerts' },
+                  ].map((item) => (
+                    <label key={item.key} className="settings-checkbox-card">
+                      <span>{item.label}</span>
+                      <input
+                        type="checkbox"
+                        checked={notifications[item.key]}
+                        onChange={(e) =>
+                          setNotifications((prev) => ({
+                            ...prev,
+                            [item.key]: e.target.checked
+                          }))
+                        }
+                      />
+                    </label>
+                  ))}
+                </div>
+
+                <button type="submit" className="settings-submit-btn">
+                  Save Notification Rules
+                </button>
+              </form>
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

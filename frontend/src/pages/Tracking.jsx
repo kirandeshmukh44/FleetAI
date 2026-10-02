@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import api from '../services/api';
@@ -19,6 +19,8 @@ import {
   MdRoute,
   MdGpsFixed,
   MdGpsOff,
+  MdAutoAwesome,
+  MdNavigation,
 } from 'react-icons/md';
 
 /* ── Leaflet icon fix ───────────────────────────────────────── */
@@ -152,7 +154,7 @@ const Tracking = () => {
 
   useEffect(() => {
     fetchFleet();
-    intervalRef.current = setInterval(fetchFleet, 30000);
+    intervalRef.current = setInterval(fetchFleet, 5000);
     return () => clearInterval(intervalRef.current);
   }, [fetchFleet]);
 
@@ -352,7 +354,7 @@ const Tracking = () => {
 
             {flyTo && <RecenterMap center={flyTo} />}
 
-            {/* User live marker */}
+            {/* User live marker and path trail */}
             {userPos && (
               <>
                 <Marker position={userPos} icon={userIcon}>
@@ -371,6 +373,12 @@ const Tracking = () => {
                   radius={40}
                   pathOptions={{ color: '#3268ff', fillColor: '#3268ff', fillOpacity: 0.12, weight: 1.5 }}
                 />
+                {userPath.length > 1 && (
+                  <Polyline
+                    positions={userPath}
+                    pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.8, dashArray: '6, 6' }}
+                  />
+                )}
               </>
             )}
 
@@ -385,11 +393,19 @@ const Tracking = () => {
                   eventHandlers={{ click: () => setSelectedVehicle(d) }}
                 >
                   <Popup>
-                    <div style={{ color: '#111', minWidth: 160 }}>
-                      <strong>{d.vehicle.vehicle_id}</strong><br />
-                      Status: {d.vehicle.status}<br />
-                      Speed: {Number(d.vehicle.current_speed || 0).toFixed(0)} km/h<br />
-                      Feed: {d.feed_status}
+                    <div style={{ color: '#111', minWidth: 180, fontSize: '12px' }}>
+                      <strong style={{ fontSize: '14px', color: '#1e293b' }}>{d.vehicle.vehicle_id}</strong>
+                      <div style={{ color: '#64748b', marginBottom: '4px' }}>{d.vehicle.registration_number || 'No reg.'}</div>
+                      <div><strong>Status:</strong> {d.vehicle.status} ({d.feed_status})</div>
+                      <div><strong>Speed:</strong> {Number(d.vehicle.current_speed || 0).toFixed(0)} km/h</div>
+                      <div><strong>Fuel Level:</strong> {Number(d.vehicle.fuel_level || 0).toFixed(0)}%</div>
+                      {d.active_journey && (
+                        <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
+                          <span style={{ color: '#6366f1', fontWeight: 600 }}>Active Journey ({d.active_journey.journey_id}):</span>
+                          <div>{d.active_journey.start_location} → <strong>{d.active_journey.end_location}</strong></div>
+                          <div>Dist: {d.active_journey.distance || '—'} km · Est: {d.active_journey.duration || '—'} min</div>
+                        </div>
+                      )}
                     </div>
                   </Popup>
                 </Marker>
@@ -444,6 +460,23 @@ const Tracking = () => {
                     <span><MdSpeed size={12} /> {Number(d.vehicle.current_speed || 0).toFixed(0)} km/h</span>
                     <span><MdLocalGasStation size={12} /> {Number(d.vehicle.fuel_level || 0).toFixed(0)}%</span>
                   </div>
+                  {d.active_journey && (
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#a5b4fc',
+                      background: 'rgba(99, 102, 241, 0.12)',
+                      border: '1px solid rgba(99, 102, 241, 0.25)',
+                      borderRadius: '6px',
+                      padding: '3px 8px',
+                      marginTop: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '5px'
+                    }}>
+                      <MdNavigation size={12} style={{ transform: 'rotate(45deg)' }} />
+                      <span>{d.active_journey.start_location} → <b>{d.active_journey.end_location}</b></span>
+                    </div>
+                  )}
                   {d.latest_gps && (
                     <div className="fleet-item-coords">
                       <MdLocationOn size={11} />

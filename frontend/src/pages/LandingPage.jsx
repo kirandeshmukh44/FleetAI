@@ -889,15 +889,21 @@ const LandingPage = () => {
               <video 
                 ref={videoRef}
                 className="modal-video"
-                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
                 poster={heroImage}
                 controls
                 playsInline
+                autoPlay
                 muted={isMuted}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
+                onError={() => {
+                  console.warn('Video failed to load from primary source');
+                }}
               >
-                Your browser does not support HTML5 video.
+                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4" />
+                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
+                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
+                Your browser does not support HTML5 video playback.
               </video>
             </div>
 
@@ -907,7 +913,7 @@ const LandingPage = () => {
                   {isPlaying ? '⏸ Pause' : '▶ Play'}
                 </button>
                 <button type="button" className="video-ctrl-btn" onClick={toggleMute}>
-                  {isMuted ? '🔇 Unmute' : '🔊 Muted'}
+                  {isMuted ? '🔇 Unmute' : '🔊 Sound On'}
                 </button>
               </div>
               <p className="video-modal-hint">

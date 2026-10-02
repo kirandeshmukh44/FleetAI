@@ -408,13 +408,16 @@
 /* ---- Vehicle detail modal ------------------------- */
 .tracking-modal-box {
   background: linear-gradient(145deg, #191b2b, #10121d);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 18px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(50, 104, 255, 0.2);
   color: #f1f1f7;
-  max-width: 500px;
+  max-width: 520px;
   padding: 26px;
   position: relative;
   width: 90vw;
+  z-index: 1000;
+  animation: slideInDown 0.22s ease;
 }
 
 .tracking-modal-header {

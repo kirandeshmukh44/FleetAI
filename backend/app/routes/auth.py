@@ -58,8 +58,42 @@ def get_current_user():
     except (TypeError, ValueError):
         return jsonify({'error': 'Invalid token identity'}), 401
     user = User.query.get(user_id)
-    
     if user:
         return jsonify(user.to_dict()), 200
-    
     return jsonify({'error': 'User not found'}), 404
+
+@auth_bp.route('/profile', methods=['PUT'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid token identity'}), 401
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+
+    data = request.get_json(silent=True) or {}
+    new_username = data.get('username')
+    new_email = data.get('email')
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if new_username and new_username != user.username:
+        if User.query.filter(User.username == new_username, User.id != user.id).first():
+            return jsonify({'error': 'Username already taken'}), 400
+        user.username = new_username
+
+    if new_email and new_email != user.email:
+        if User.query.filter(User.email == new_email, User.id != user.id).first():
+            return jsonify({'error': 'Email already registered'}), 400
+        user.email = new_email
+
+    if new_password:
+        if not current_password or not user.check_password(current_password):
+            return jsonify({'error': 'Current password is incorrect'}), 400
+        user.set_password(new_password)
+
+    db.session.commit()
+    return jsonify({'message': 'Profile updated successfully', 'user': user.to_dict()}), 200
