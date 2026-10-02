@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 
 const Drivers = () => {
@@ -45,9 +46,9 @@ const Drivers = () => {
           <h1 className="text-3xl font-bold text-white mb-2">Driver Management</h1>
           <p className="text-muted">Manage and monitor your drivers</p>
         </div>
-        <button className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
-          Add Driver
-        </button>
+        <Link to="/data-entry" className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
+          Add / Manage in Data Entry
+        </Link>
       </div>
 
       <div className="glass-card overflow-x-auto">

@@ -15,6 +15,7 @@ const RiskPrediction = lazy(() => import('./pages/RiskPrediction'));
 const FuelAnalytics = lazy(() => import('./pages/FuelAnalytics'));
 const Reports = lazy(() => import('./pages/Reports'));
 const Settings = lazy(() => import('./pages/Settings'));
+const DataEntry = lazy(() => import('./pages/DataEntry'));
 
 // Layouts
 import MainLayout from './layouts/MainLayout';
@@ -63,6 +64,7 @@ function App() {
             <Route path="/fuel-analytics" element={<ProtectedRoute><FuelAnalytics /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/data-entry" element={<ProtectedRoute><DataEntry /></ProtectedRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>

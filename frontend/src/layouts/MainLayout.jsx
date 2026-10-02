@@ -15,6 +15,11 @@ import {
   MdLogout,
   MdMenu,
   MdClose,
+  MdEditNote,
+  MdPerson,
+  MdCalendarToday,
+  MdEmail,
+  MdShield,
 } from 'react-icons/md';
 
 const menuGroups = [
@@ -23,6 +28,7 @@ const menuGroups = [
     items: [
       { path: '/dashboard', Icon: MdDashboard, label: 'Overview' },
       { path: '/tracking', Icon: MdLocationOn, label: 'Live Tracking' },
+      { path: '/data-entry', Icon: MdEditNote, label: 'Data Entry' },
     ],
   },
   {
@@ -48,6 +54,7 @@ const MainLayout = ({ children }) => {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 800);
   const [databaseStatus, setDatabaseStatus] = useState('checking');
+  const [profileOpen, setProfileOpen] = useState(false);
   const currentPage = menuGroups
     .flatMap((group) => group.items)
     .find((item) => location.pathname.startsWith(item.path));
@@ -73,7 +80,12 @@ const MainLayout = ({ children }) => {
   /* Close sidebar on route change on mobile */
   useEffect(() => {
     if (window.innerWidth <= 800) setSidebarOpen(false);
+    setProfileOpen(false);
   }, [location.pathname]);
+
+  const joinDate = user?.created_at
+    ? new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
+    : null;
 
   return (
     <div className="app-shell">
@@ -154,23 +166,70 @@ const MainLayout = ({ children }) => {
             <span>Settings</span>
           </Link>
 
-          <div className="sidebar-user">
-            <div className="user-avatar">
-              {user?.username?.[0]?.toUpperCase() || 'A'}
-            </div>
-            <span className="user-identity">
-              <b>{user?.username || 'Administrator'}</b>
-              <small>{user?.role || 'Fleet administrator'}</small>
-            </span>
+          {/* User Profile Card */}
+          <div className="sidebar-user-card">
             <button
-              className="logout-button"
-              type="button"
-              title="Log out"
-              aria-label="Log out"
-              onClick={logout}
+              className="sidebar-user-card-trigger"
+              onClick={() => setProfileOpen((o) => !o)}
+              aria-expanded={profileOpen}
+              aria-label="Toggle profile details"
             >
-              <MdLogout size={18} />
+              <div className="user-avatar">
+                {user?.username?.[0]?.toUpperCase() || 'A'}
+              </div>
+              <span className="user-identity">
+                <b>{user?.username || 'Administrator'}</b>
+                <small>{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Fleet Admin'}</small>
+              </span>
+              <button
+                className="logout-button"
+                type="button"
+                title="Log out"
+                aria-label="Log out"
+                onClick={(e) => { e.stopPropagation(); logout(); }}
+              >
+                <MdLogout size={18} />
+              </button>
             </button>
+
+            {profileOpen && (
+              <div className="sidebar-profile-panel">
+                <div className="profile-panel-header">
+                  <div className="profile-avatar-lg">
+                    {user?.username?.[0]?.toUpperCase() || 'A'}
+                  </div>
+                  <div>
+                    <strong>{user?.username || 'Administrator'}</strong>
+                    <span className="profile-role-badge">
+                      <MdShield size={11} />
+                      {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin'}
+                    </span>
+                  </div>
+                </div>
+                <div className="profile-detail-rows">
+                  {user?.email && (
+                    <div className="profile-detail-row">
+                      <MdEmail size={14} className="profile-detail-icon" />
+                      <span>{user.email}</span>
+                    </div>
+                  )}
+                  {joinDate && (
+                    <div className="profile-detail-row">
+                      <MdCalendarToday size={14} className="profile-detail-icon" />
+                      <span>Joined {joinDate}</span>
+                    </div>
+                  )}
+                  <div className="profile-detail-row">
+                    <MdPerson size={14} className="profile-detail-icon" />
+                    <span>ID #{user?.id || '—'}</span>
+                  </div>
+                </div>
+                <button className="profile-logout-btn" onClick={logout}>
+                  <MdLogout size={15} />
+                  Sign out
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </aside>

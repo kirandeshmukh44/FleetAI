@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   MdDirectionsCar,
   MdElectricCar,
@@ -14,6 +15,10 @@ import {
   MdLocationOn,
   MdAnalytics,
   MdSpeed,
+  MdEmail,
+  MdCalendarToday,
+  MdShield,
+  MdFingerprint,
 } from 'react-icons/md';
 import api from '../services/api';
 import '../styles/dashboard.css';
@@ -38,6 +43,7 @@ const timeLabel = (date) => {
 };
 
 const Dashboard = () => {
+  const { user } = useAuth();
   const [summary, setSummary] = useState(null);
   const [trackingData, setTrackingData] = useState([]);
   const [riskHistory, setRiskHistory] = useState([]);
@@ -140,6 +146,63 @@ const Dashboard = () => {
           </button>
         </div>
       )}
+
+      {/* User Details / Profile Section */}
+      <section className="dashboard-user-banner" aria-label="User Profile Details">
+        <div className="user-banner-content">
+          <div className="user-banner-profile">
+            <div className="user-banner-avatar" aria-hidden="true">
+              {user?.username?.[0]?.toUpperCase() || 'A'}
+            </div>
+            <div className="user-banner-info">
+              <h2>Welcome back, {user?.username || 'Fleet Administrator'}</h2>
+              <div className="user-banner-role-row">
+                <span className="user-badge-role">
+                  <MdShield size={13} />
+                  {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Administrator'}
+                </span>
+                <span className="user-badge-active">
+                  <i /> Authenticated Session
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="user-banner-details-grid">
+            <div className="user-detail-pill">
+              <span className="user-detail-pill-icon"><MdEmail size={17} /></span>
+              <div className="user-detail-pill-copy">
+                <small>Email Address</small>
+                <b title={user?.email || 'N/A'}>{user?.email || 'No email associated'}</b>
+              </div>
+            </div>
+
+            <div className="user-detail-pill">
+              <span className="user-detail-pill-icon"><MdFingerprint size={17} /></span>
+              <div className="user-detail-pill-copy">
+                <small>User Account ID</small>
+                <b>#{user?.id ? String(user.id).padStart(4, '0') : '0001'}</b>
+              </div>
+            </div>
+
+            <div className="user-detail-pill">
+              <span className="user-detail-pill-icon"><MdCalendarToday size={17} /></span>
+              <div className="user-detail-pill-copy">
+                <small>Member Since</small>
+                <b>
+                  {user?.created_at
+                    ? new Date(user.created_at).toLocaleDateString(undefined, {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : 'System Account'}
+                </b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Metric cards */}
       <section className="metric-grid" aria-label="Fleet performance metrics">

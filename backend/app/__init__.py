@@ -28,6 +28,7 @@ def create_app():
     from app.routes.risk import risk_bp
     from app.routes.import_csv import import_bp
     from app.routes.health import health_bp
+    from app.routes.journeys import journeys_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(vehicles_bp, url_prefix='/api/vehicles')
@@ -38,5 +39,6 @@ def create_app():
     app.register_blueprint(risk_bp, url_prefix='/api/risk')
     app.register_blueprint(import_bp, url_prefix='/api/import')
     app.register_blueprint(health_bp, url_prefix='/api/health')
+    app.register_blueprint(journeys_bp, url_prefix='/api/journeys')
     
     return app
