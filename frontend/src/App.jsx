@@ -27,7 +27,7 @@ function ProtectedRoute({ children }) {
     return (
       <div className="route-loading">
         <span className="loading-spinner" />
-        <span>Loading workspace…</span>
+        <span>Loading FleetAI...</span>
       </div>
     );
   }
@@ -47,7 +47,7 @@ function App() {
           fallback={
             <div className="route-loading">
               <span className="loading-spinner" />
-              <span>Opening workspace…</span>
+              <span>Preparing your workspace...</span>
             </div>
           }
         >

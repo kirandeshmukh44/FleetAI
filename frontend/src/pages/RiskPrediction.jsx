@@ -13,6 +13,7 @@ const RiskPrediction = () => {
   const [predicting, setPredicting] = useState(false);
   const [modelInfo, setModelInfo] = useState(null);
   const [notice, setNotice] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -32,6 +33,7 @@ const RiskPrediction = () => {
       setModelInfo(modelRes.data);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setError(error.response?.data?.error || 'Risk analysis data is unavailable right now. Check the API connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -81,18 +83,28 @@ const RiskPrediction = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="page-loading" role="status" aria-live="polite">
         <span className="loading loading-spinner loading-lg text-electric-blue"></span>
+        <span>Loading risk intelligence...</span>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Driver Safety Risk Analysis</h1>
         <p className="text-muted">Behavior-based risk signals that help supervisors intervene before unsafe journeys escalate.</p>
       </div>
+      {error && (
+        <div className="data-alert" role="alert">
+          <strong>Could not load risk analysis.</strong>
+          <span>{error}</span>
+          <button className="btn btn-sm btn-outline" onClick={() => { setError(''); setLoading(true); fetchData(); }}>
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="glass-card flex flex-wrap items-center justify-between gap-5">
         <div className="min-w-[260px] flex-1">

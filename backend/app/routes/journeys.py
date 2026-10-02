@@ -124,6 +124,16 @@ def update_journey(id):
         if hasattr(Journey, key) and key not in ('id', 'created_at'):
             setattr(journey, key, value)
 
+    if data.get('status') == 'COMPLETED':
+        journey.end_time = journey.end_time or datetime.utcnow()
+        if journey.vehicle:
+            journey.vehicle.status = 'IDLE'
+            if journey.vehicle.current_driver_id == journey.driver_id:
+                journey.vehicle.current_driver_id = None
+        if journey.driver and journey.driver.assigned_vehicle_id == journey.vehicle_id:
+            journey.driver.assigned_vehicle_id = None
+            journey.driver.status = 'ACTIVE'
+
     db.session.commit()
     return jsonify(journey.to_dict()), 200
 

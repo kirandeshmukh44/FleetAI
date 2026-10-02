@@ -134,6 +134,102 @@ img, svg {
   min-height: 100vh;
 }
 
+.route-loading::before {
+  animation: loading-pulse 1.5s ease-in-out infinite;
+  background: linear-gradient(90deg, #1677ff, #00d4a8, #1677ff);
+  background-size: 200% 100%;
+  border-radius: 999px;
+  content: '';
+  height: 4px;
+  margin-bottom: 8px;
+  width: min(280px, 60vw);
+}
+
+.page-loading {
+  align-items: center;
+  color: #94a3b8;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  justify-content: center;
+  min-height: 320px;
+}
+
+.page-enter {
+  animation: page-enter 420ms ease-out both;
+}
+
+.data-alert {
+  align-items: center;
+  background: rgba(245, 158, 11, 0.09);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 12px;
+  color: #fde68a;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 14px 16px;
+}
+
+.data-alert span { color: #cbd5e1; }
+.data-alert .btn { margin-left: auto; }
+
+.report-type-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.report-type-button {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: #94a3b8;
+  padding: 16px 10px;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.report-type-button:hover { transform: translateY(-2px); }
+
+.report-preview {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  min-height: 300px;
+  padding: 22px;
+}
+
+.report-preview-header {
+  align-items: center;
+  color: #94a3b8;
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.report-status { color: #00d4a8; font-weight: 700; }
+.report-metric-grid { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 32px; }
+.report-metric-grid div { border-left: 2px solid #1677ff; padding-left: 14px; }
+.report-metric-grid span, .report-metric-grid strong { display: block; }
+.report-metric-grid span { color: #94a3b8; font-size: 12px; }
+.report-metric-grid strong { color: #f8fafc; font-size: 28px; margin-top: 4px; }
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes loading-pulse {
+  0%, 100% { background-position: 0% 50%; opacity: 0.65; }
+  50% { background-position: 100% 50%; opacity: 1; }
+}
+
+@media (max-width: 800px) {
+  .report-type-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .report-metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 /* ---- Leaflet map styles --------------------------- */
 .leaflet-container {
   background: #0b1f33;

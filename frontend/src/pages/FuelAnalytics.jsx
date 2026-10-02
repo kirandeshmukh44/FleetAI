@@ -6,6 +6,7 @@ const FuelAnalytics = () => {
   const [fuelRecords, setFuelRecords] = useState([]);
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -21,6 +22,7 @@ const FuelAnalytics = () => {
       setAnalytics(analyticsRes.data);
     } catch (error) {
       console.error('Error fetching fuel data:', error);
+      setError(error.response?.data?.error || 'Fuel data is unavailable right now. Check the API connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -28,8 +30,9 @@ const FuelAnalytics = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="page-loading" role="status" aria-live="polite">
         <span className="loading loading-spinner loading-lg text-electric-blue"></span>
+        <span>Loading fuel intelligence...</span>
       </div>
     );
   }
@@ -41,11 +44,21 @@ const FuelAnalytics = () => {
   })) || [];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Fuel Analytics</h1>
         <p className="text-muted">Fuel consumption analysis and efficiency metrics</p>
       </div>
+
+      {error && (
+        <div className="data-alert" role="alert">
+          <strong>Could not load fuel analytics.</strong>
+          <span>{error}</span>
+          <button className="btn btn-sm btn-outline" onClick={() => { setError(''); setLoading(true); fetchData(); }}>
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -133,6 +146,7 @@ const FuelAnalytics = () => {
             </tr>
           </thead>
           <tbody>
+            {!fuelRecords.length && <tr><td colSpan="6" className="text-center text-muted py-10">No fuel records are available yet.</td></tr>}
             {fuelRecords.slice(0, 10).map((record) => (
               <tr key={record.id} className="hover:bg-white/5">
                 <td className="text-white">{new Date(record.timestamp).toLocaleString()}</td>

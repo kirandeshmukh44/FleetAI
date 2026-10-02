@@ -1,7 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import api from '../services/api';
 
 const Reports = () => {
   const [selectedReport, setSelectedReport] = useState('fleet');
+  const [reportData, setReportData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [generatedAt, setGeneratedAt] = useState(null);
 
   const reportTypes = [
     { id: 'fleet', name: 'Fleet Performance', icon: '🚛' },
@@ -11,22 +16,74 @@ const Reports = () => {
     { id: 'journey', name: 'Journey Report', icon: '📍' },
   ];
 
+  useEffect(() => {
+    Promise.allSettled([
+      api.get('/dashboard/summary'),
+      api.get('/fuel/analytics'),
+      api.get('/risk/history'),
+    ]).then((results) => {
+      const [summary, fuel, risk] = results;
+      if (results.every((result) => result.status === 'rejected')) {
+        setError('Reports could not connect to the workspace data.');
+      }
+      setReportData({
+        summary: summary.status === 'fulfilled' ? summary.value.data : {},
+        fuel: fuel.status === 'fulfilled' ? fuel.value.data : { vehicle_consumption: [] },
+        risk: risk.status === 'fulfilled' ? risk.value.data : [],
+      });
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const activeReport = reportTypes.find((report) => report.id === selectedReport);
+  const riskCounts = (reportData?.risk || []).reduce((counts, item) => {
+    counts[item.risk_level] = (counts[item.risk_level] || 0) + 1;
+    return counts;
+  }, {});
+
+  const generateReport = () => setGeneratedAt(new Date());
+
+  const exportCsv = () => {
+    const summary = reportData?.summary || {};
+    const rows = [
+      ['Report', activeReport?.name || 'Fleet report'],
+      ['Generated', new Date().toISOString()],
+      ['Vehicles', summary.total_vehicles ?? 0],
+      ['Active vehicles', summary.active_vehicles ?? 0],
+      ['Drivers', summary.total_drivers ?? 0],
+      ['Journeys', summary.total_journeys ?? 0],
+      ['Average fuel efficiency', summary.average_fuel_efficiency ?? 0],
+      ['Risk alerts', summary.risk_alerts ?? 0],
+    ];
+    const blob = new Blob([rows.map((row) => row.join(',')).join('\n')], { type: 'text/csv' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `${selectedReport}-report.csv`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  };
+
+  if (loading) {
+    return <div className="page-loading" role="status" aria-live="polite"><span className="loading loading-spinner loading-lg text-electric-blue" /><span>Preparing reports...</span></div>;
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 page-enter">
       <div>
         <h1 className="text-3xl font-bold text-white mb-2">Reports</h1>
         <p className="text-muted">Generate and view fleet performance reports</p>
       </div>
 
+      {error && <div className="data-alert" role="alert"><strong>Report data is limited.</strong><span>{error}</span></div>}
+
       {/* Report Type Selection */}
       <div className="glass-card">
         <h3 className="text-xl font-semibold text-white mb-4">Select Report Type</h3>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="report-type-grid">
           {reportTypes.map((type) => (
             <button
               key={type.id}
               onClick={() => setSelectedReport(type.id)}
-              className={`p-4 rounded-lg border transition-all ${
+              className={`report-type-button ${
                 selectedReport === type.id
                   ? 'bg-electric-blue/20 border-electric-blue text-electric-blue'
                   : 'bg-white/5 border-white/10 text-muted hover:bg-white/10'
@@ -48,6 +105,7 @@ const Reports = () => {
               <span className="label-text text-white">Start Date</span>
             </label>
             <input
+              aria-label="Start date"
               type="date"
               className="input input-bordered bg-navy-blue border-white/20 text-white"
             />
@@ -57,6 +115,7 @@ const Reports = () => {
               <span className="label-text text-white">End Date</span>
             </label>
             <input
+              aria-label="End date"
               type="date"
               className="input input-bordered bg-navy-blue border-white/20 text-white"
             />
@@ -65,33 +124,28 @@ const Reports = () => {
             <label className="label">
               <span className="label-text text-white">Vehicle</span>
             </label>
-            <select className="select select-bordered bg-navy-blue border-white/20 text-white">
+            <select aria-label="Vehicle" className="select select-bordered bg-navy-blue border-white/20 text-white">
               <option>All Vehicles</option>
-              <option>VH-001</option>
-              <option>VH-002</option>
-              <option>VH-003</option>
+              {(reportData?.fuel?.vehicle_consumption || []).map((vehicle) => <option key={vehicle.vehicle_id}>VH-{vehicle.vehicle_id}</option>)}
             </select>
           </div>
           <div className="form-control">
             <label className="label">
               <span className="label-text text-white">Driver</span>
             </label>
-            <select className="select select-bordered bg-navy-blue border-white/20 text-white">
+            <select aria-label="Driver" className="select select-bordered bg-navy-blue border-white/20 text-white">
               <option>All Drivers</option>
-              <option>DR-001</option>
-              <option>DR-002</option>
-              <option>DR-003</option>
             </select>
           </div>
         </div>
         <div className="mt-4 flex gap-4">
-          <button className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
+          <button onClick={generateReport} className="btn btn-primary bg-electric-blue hover:bg-electric-blue/80 border-none">
             Generate Report
           </button>
-          <button className="btn btn-outline border-white/20 text-white hover:bg-white/10">
+          <button onClick={() => window.print()} className="btn btn-outline border-white/20 text-white hover:bg-white/10">
             Export PDF
           </button>
-          <button className="btn btn-outline border-white/20 text-white hover:bg-white/10">
+          <button onClick={exportCsv} className="btn btn-outline border-white/20 text-white hover:bg-white/10">
             Export CSV
           </button>
         </div>
@@ -101,19 +155,22 @@ const Reports = () => {
       <div className="glass-card">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold text-white">
-            {reportTypes.find(r => r.id === selectedReport)?.name} Report
+            {activeReport?.name} Report
           </h3>
-          <button className="btn btn-sm btn-ghost text-electric-blue hover:bg-electric-blue/20">
+          <button onClick={() => window.print()} className="btn btn-sm btn-ghost text-electric-blue hover:bg-electric-blue/20">
             Print Report
           </button>
         </div>
         
-        <div className="bg-white/5 rounded-lg p-6 min-h-[400px]">
-          <div className="text-center text-muted">
-            <div className="text-6xl mb-4">📊</div>
-            <p className="text-lg">Select filters and click "Generate Report" to view the report</p>
-            <p className="text-sm mt-2">Reports will include detailed analytics, charts, and performance metrics</p>
+        <div className="report-preview">
+          <div className="report-preview-header"><span>{generatedAt ? `Generated ${generatedAt.toLocaleString()}` : 'Live workspace snapshot'}</span><span className="report-status">{generatedAt ? 'READY' : 'PREVIEW'}</span></div>
+          <div className="report-metric-grid">
+            <div><span>Vehicles</span><strong>{reportData?.summary?.total_vehicles ?? 0}</strong></div>
+            <div><span>Drivers</span><strong>{reportData?.summary?.total_drivers ?? 0}</strong></div>
+            <div><span>Journeys</span><strong>{reportData?.summary?.total_journeys ?? 0}</strong></div>
+            <div><span>Risk alerts</span><strong className="text-warning">{reportData?.summary?.risk_alerts ?? 0}</strong></div>
           </div>
+          <p className="mt-6 text-sm text-muted">Risk history: {riskCounts.LOW || 0} low, {riskCounts.MEDIUM || 0} medium, {riskCounts.HIGH || 0} high. Average fuel efficiency: {reportData?.summary?.average_fuel_efficiency ?? 0} km/l.</p>
         </div>
       </div>
 
