@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import heroImage from '../assets/hero-command-center.jpg';
 import telemetryImage from '../assets/telemetry-digital-twin.jpg';
@@ -145,10 +145,6 @@ const LandingPage = () => {
   const [scrolled, setScrolled] = useState(false);
   const [activeVehicle, setActiveVehicle] = useState(vehicleFleet[0]);
 
-  // Video State & Ref
-  const videoRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
   const [videoModalOpen, setVideoModalOpen] = useState(false);
 
   // ML Risk Simulator Interactive State
@@ -169,31 +165,6 @@ const LandingPage = () => {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  // Safe Play/Pause Handler that avoids AbortError
-  const togglePlay = () => {
-    if (!videoRef.current) return;
-    if (isPlaying) {
-      videoRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      const playPromise = videoRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setIsPlaying(true))
-          .catch(() => {
-            // Autoplay or playback interrupted gracefully
-            setIsPlaying(false);
-          });
-      }
-    }
-  };
-
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    videoRef.current.muted = !isMuted;
-    setIsMuted(!isMuted);
-  };
 
   // Run Real-time Client-side Random Forest ML Formula
   const calculateRiskSimulation = (speed, harshBrake, harshAccel, weather) => {
@@ -334,7 +305,7 @@ const LandingPage = () => {
                   className="button-outline"
                   onClick={() => setVideoModalOpen(true)}
                 >
-                  <span className="play-mark">▸</span> Watch Platform Demo
+                  <span className="play-mark">▸</span> Explore Platform Features
                 </button>
               </div>
 
@@ -858,68 +829,28 @@ const LandingPage = () => {
         </section>
       </main>
 
-      {/* VIDEO PREVIEW MODAL */}
+      {/* FleetAI platform preview */}
       {videoModalOpen && (
-        <div 
-          className="video-modal-backdrop" 
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setVideoModalOpen(false)}
-        >
-          <div 
-            className="video-modal-content"
-            onClick={(e) => e.stopPropagation()}
-          >
+        <div className="video-modal-backdrop" role="dialog" aria-modal="true" onClick={() => setVideoModalOpen(false)}>
+          <div className="video-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="video-modal-header">
-              <div className="video-modal-title">
-                <span className="live-dot" />
-                FleetAI System Walkthrough &amp; Video Tour
-              </div>
-              <button 
-                type="button" 
-                className="video-close-btn"
-                onClick={() => setVideoModalOpen(false)}
-                aria-label="Close video modal"
-              >
-                ✕
-              </button>
+              <div className="video-modal-title"><span className="live-dot" /> FleetAI Platform Preview</div>
+              <button type="button" className="video-close-btn" onClick={() => setVideoModalOpen(false)} aria-label="Close platform preview">?</button>
             </div>
-
-            <div className="video-player-container">
-              <video 
-                ref={videoRef}
-                className="modal-video"
-                poster={heroImage}
-                controls
-                playsInline
-                autoPlay
-                muted={isMuted}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                onError={() => {
-                  console.warn('Video failed to load from primary source');
-                }}
-              >
-                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4" type="video/mp4" />
-                <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4" />
-                <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
-                Your browser does not support HTML5 video playback.
-              </video>
+            <div className="video-player-container" style={{ padding: 28, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 16, background: '#0b1020', aspectRatio: 'auto', minHeight: 220 }}>
+              {[
+                ['Live fleet tracking', 'See active vehicles, assigned drivers, GPS freshness and route positions together.'],
+                ['Driver safety insights', 'Review behavior signals and risk levels to support safer operations.'],
+                ['Fleet data workspace', 'Add records manually or import CSV data for vehicles, drivers and journeys.'],
+              ].map(([title, text]) => (
+                <article key={title} style={{ padding: 20, border: '1px solid rgba(148,163,184,.2)', borderRadius: 14, background: 'rgba(255,255,255,.035)', color: '#f4f5fb' }}>
+                  <span className="live-dot" style={{ display: 'inline-block', marginRight: 10 }} />
+                  <strong>{title}</strong>
+                  <p style={{ color: '#a6adbf', lineHeight: 1.6, marginBottom: 0 }}>{text}</p>
+                </article>
+              ))}
             </div>
-
-            <div className="video-modal-footer">
-              <div className="video-ctrls">
-                <button type="button" className="video-ctrl-btn" onClick={togglePlay}>
-                  {isPlaying ? '⏸ Pause' : '▶ Play'}
-                </button>
-                <button type="button" className="video-ctrl-btn" onClick={toggleMute}>
-                  {isMuted ? '🔇 Unmute' : '🔊 Sound On'}
-                </button>
-              </div>
-              <p className="video-modal-hint">
-                AI Fleet Platform &middot; Live telemetry, safety classification &amp; SQLite database
-              </p>
-            </div>
+            <div className="video-modal-footer"><Link className="button-gradient" to="/login">Open Fleet Workspace ?</Link><p className="video-modal-hint">Fleet operations, telemetry and safety insights in one workspace</p></div>
           </div>
         </div>
       )}

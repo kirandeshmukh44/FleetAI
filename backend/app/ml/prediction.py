@@ -9,6 +9,8 @@ class RiskPredictor:
         self.model = None
         self.preprocessor = None
         self.is_loaded = False
+        self.artifact_signature = None
+        self.last_load_error = None
         self.load_model()
     
     def load_model(self):
@@ -21,18 +23,32 @@ class RiskPredictor:
             preprocessor_path = os.path.join(model_dir, 'preprocessor.pkl')
             
             if os.path.exists(model_path) and os.path.exists(preprocessor_path):
+                signature = (
+                    os.path.getmtime(model_path), os.path.getsize(model_path),
+                    os.path.getmtime(preprocessor_path), os.path.getsize(preprocessor_path),
+                )
+                if self.is_loaded and signature == self.artifact_signature:
+                    return
                 self.model = RiskPredictionModel()
                 self.model.load_model(model_path)
                 self.preprocessor = joblib.load(preprocessor_path)
                 self.is_loaded = True
+                self.artifact_signature = signature
+                self.last_load_error = None
                 print("Risk prediction model loaded successfully")
             else:
+                self.model = None
+                self.preprocessor = None
+                self.is_loaded = False
                 print("Trained model not found. Using fallback prediction.")
         except Exception as e:
+            self.is_loaded = False
+            self.last_load_error = str(e)
             print(f"Error loading model: {e}")
     
     def predict_risk(self, features):
         """Predict risk level from features"""
+        self.load_model()
         if not self.is_loaded:
             # Fallback: simple rule-based prediction
             return self._fallback_prediction(features)
@@ -63,7 +79,7 @@ class RiskPredictor:
             return {
                 'risk_level': risk_level,
                 'risk_probability': risk_probability,
-                'model_used': 'Random Forest · route anomaly data',
+                'model_used': 'Experimental Random Forest · behavior event dataset',
                 'is_fallback': False
             }
         except Exception as e:

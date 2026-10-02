@@ -15,15 +15,50 @@ def get_model_info():
     backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
     path = os.path.join(backend_dir, 'trained_models', 'training_metadata.pkl')
     if not os.path.exists(path):
-        return jsonify({'available': risk_predictor.is_loaded, 'source': None}), 200
-    metadata = joblib.load(path)
+        return jsonify({
+            'available': risk_predictor.is_loaded,
+            'training_status': 'No training metadata found',
+            'source': None,
+            'limitations': ['No verified training report is available.'],
+        }), 200
+    try:
+        metadata = joblib.load(path)
+    except Exception as error:
+        return jsonify({
+            'available': False,
+            'training_status': 'Training metadata could not be read',
+            'source': None,
+            'error': str(error),
+        }), 200
+    metrics = metadata.get('metrics', {})
+    positive_count = metadata.get('class_counts', {}).get('HIGH', 0)
+    rows_used = metadata.get('rows_used', 0)
+    anomaly_rate = positive_count / rows_used if rows_used else None
+    average_precision = metrics.get('high_average_precision')
+    weak_signal = average_precision is not None and anomaly_rate is not None and average_precision <= anomaly_rate + 0.03
     return jsonify({
         'available': risk_predictor.is_loaded,
+        'training_status': 'Loaded development model' if risk_predictor.is_loaded else 'Model artifacts unavailable',
+        'model_name': metadata.get('model_name'),
         'source': metadata.get('source'),
         'label': metadata.get('label'),
+        'label_description': metadata.get('label_description'),
         'rows_used': metadata.get('rows_used'),
-        'accuracy': metadata.get('metrics', {}).get('accuracy'),
-        'f1_score': metadata.get('metrics', {}).get('f1_score'),
+        'train_rows': metadata.get('train_rows'),
+        'holdout_rows': metadata.get('holdout_rows'),
+        'class_counts': metadata.get('class_counts'),
+        'anomaly_rate': anomaly_rate,
+        'driver_count': metadata.get('driver_count'),
+        'vehicle_count': metadata.get('vehicle_count'),
+        'period_start': metadata.get('period_start'),
+        'period_end': metadata.get('period_end'),
+        'holdout_method': metadata.get('holdout_method'),
+        'features': metadata.get('features', []),
+        'feature_importance': metadata.get('feature_importance', {}),
+        'metrics': metrics,
+        'signal_quality': 'weak' if weak_signal else ('unverified' if average_precision is None else 'measurable'),
+        'limitations': metadata.get('limitations', []),
+        'trained_at': metadata.get('trained_at'),
     }), 200
 
 @risk_bp.route('/predict', methods=['POST'])
@@ -86,7 +121,12 @@ def predict_risk():
     db.session.add(prediction)
     db.session.commit()
     
-    return jsonify(prediction.to_dict()), 201
+    result = prediction.to_dict()
+    result['input_features'] = features
+    result['prediction_source'] = 'latest saved GPS and behavior records, with driver profile fallbacks'
+    result['data_freshness'] = latest_gps.timestamp.isoformat() if latest_gps else None
+    result['is_fallback'] = prediction_result.get('is_fallback', False)
+    return jsonify(result), 201
 
 @risk_bp.route('/history', methods=['GET'])
 @jwt_required()

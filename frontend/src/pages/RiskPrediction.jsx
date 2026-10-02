@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 const RiskPrediction = () => {
@@ -67,11 +68,16 @@ const RiskPrediction = () => {
     }
   };
 
-  const riskDistribution = [
-    { name: 'Low Risk', value: predictions.filter(p => p.risk_level === 'LOW').length, color: '#22C55E' },
-    { name: 'Medium Risk', value: predictions.filter(p => p.risk_level === 'MEDIUM').length, color: '#F59E0B' },
-    { name: 'High Risk', value: predictions.filter(p => p.risk_level === 'HIGH').length, color: '#EF4444' }
-  ];
+  const riskDistribution = predictions.length
+    ? [
+      { name: 'Low Risk', value: predictions.filter((p) => p.risk_level === 'LOW').length, color: '#22C55E' },
+      { name: 'Medium Risk', value: predictions.filter((p) => p.risk_level === 'MEDIUM').length, color: '#F59E0B' },
+      { name: 'High Risk', value: predictions.filter((p) => p.risk_level === 'HIGH').length, color: '#EF4444' },
+    ]
+    : [
+      { name: 'Normal training events', value: modelInfo?.class_counts?.LOW || 0, color: '#22C55E' },
+      { name: 'Anomalous training events', value: modelInfo?.class_counts?.HIGH || 0, color: '#EF4444' },
+    ];
 
   if (loading) {
     return (
@@ -88,18 +94,22 @@ const RiskPrediction = () => {
         <p className="text-muted">Behavior-based risk signals that help supervisors intervene before unsafe journeys escalate.</p>
       </div>
 
-      <div className="glass-card flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-[0.18em] text-muted">Model status</p>
-          <p className="mt-1 font-semibold text-white">{modelInfo?.available ? 'Trained behavior anomaly classifier' : 'Rule-based behavior check active'}</p>
-          <p className="mt-1 text-sm text-muted">{modelInfo?.source ? `${modelInfo.rows_used?.toLocaleString()} labeled events · ${modelInfo.source}` : 'No training metadata is available.'}</p>
-          <p className="mt-2 text-xs text-warning">This is a preventive decision-support signal, not a confirmed accident prediction.</p>
+      <div className="glass-card flex flex-wrap items-center justify-between gap-5">
+        <div className="min-w-[260px] flex-1">
+          <p className="text-xs uppercase tracking-[0.18em] text-muted">Model and data status</p>
+          <p className="mt-1 font-semibold text-white">{modelInfo?.available ? `${modelInfo.model_name || 'Behavior anomaly model'} ? ${modelInfo.signal_quality === 'weak' ? 'weak holdout signal' : 'experimental'}` : 'Rule-based behavior check active'}</p>
+          <p className="mt-1 text-sm text-muted">{modelInfo?.source ? `${modelInfo.rows_used?.toLocaleString()} labeled events ? ${modelInfo.driver_count} drivers ? ${modelInfo.vehicle_count} vehicles ? ${modelInfo.source}` : 'No training metadata is available.'}</p>
+          {modelInfo?.period_start && <p className="mt-1 text-xs text-muted">Data period: {new Date(modelInfo.period_start).toLocaleString()} ? {new Date(modelInfo.period_end).toLocaleString()} ? Holdout: {modelInfo.holdout_method}</p>}
+          <p className="mt-2 text-xs text-warning">Experimental decision support only. The bundled dataset has limited coverage and the holdout score is close to its class baseline. This is not a crash prediction.</p>
         </div>
-        {modelInfo?.accuracy != null && <div className="rounded-xl border border-white/10 px-4 py-3 text-right">
-          <p className="text-xs text-muted">Holdout accuracy</p>
-          <p className="text-xl font-bold text-cyan">{(modelInfo.accuracy * 100).toFixed(1)}%</p>
-        </div>}
+        <div className="grid grid-cols-2 gap-3 text-right">
+          <div className="rounded-xl border border-white/10 px-4 py-3"><p className="text-xs text-muted">Balanced accuracy</p><p className="text-lg font-bold text-cyan">{modelInfo?.metrics?.balanced_accuracy != null ? `${(modelInfo.metrics.balanced_accuracy * 100).toFixed(1)}%` : '?'}</p></div>
+          <div className="rounded-xl border border-white/10 px-4 py-3"><p className="text-xs text-muted">Anomaly recall</p><p className="text-lg font-bold text-warning">{modelInfo?.metrics?.high_recall != null ? `${(modelInfo.metrics.high_recall * 100).toFixed(1)}%` : '?'}</p></div>
+          <div className="rounded-xl border border-white/10 px-4 py-3"><p className="text-xs text-muted">Anomaly PR-AUC</p><p className="text-lg font-bold text-white">{modelInfo?.metrics?.high_average_precision != null ? `${(modelInfo.metrics.high_average_precision * 100).toFixed(1)}%` : '?'}</p></div>
+          <div className="rounded-xl border border-white/10 px-4 py-3"><p className="text-xs text-muted">Training anomaly rate</p><p className="text-lg font-bold text-white">{modelInfo?.anomaly_rate != null ? `${(modelInfo.anomaly_rate * 100).toFixed(1)}%` : '?'}</p></div>
+        </div>
       </div>
+      {modelInfo?.limitations?.length > 0 && <div className="rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 text-sm text-amber-100"><strong>Data limits:</strong> {modelInfo.limitations.join(' ')}</div>}
       {notice && <div className="rounded-xl border border-electric-blue/30 bg-electric-blue/10 px-4 py-3 text-sm text-white" role="status">{notice}</div>}
 
       {/* Prediction Form */}
@@ -113,7 +123,7 @@ const RiskPrediction = () => {
             <select
               className="select select-bordered bg-navy-blue border-white/20 text-white"
               value={selectedDriver || ''}
-              onChange={(e) => setSelectedDriver(parseInt(e.target.value))}
+              onChange={(e) => setSelectedDriver(e.target.value ? Number(e.target.value) : null)}
             >
               <option value="">Choose driver...</option>
               {drivers.map(driver => (
@@ -129,7 +139,7 @@ const RiskPrediction = () => {
             <select
               className="select select-bordered bg-navy-blue border-white/20 text-white"
               value={selectedVehicle || ''}
-              onChange={(e) => setSelectedVehicle(parseInt(e.target.value))}
+              onChange={(e) => setSelectedVehicle(e.target.value ? Number(e.target.value) : null)}
             >
               <option value="">Choose vehicle...</option>
               {vehicles.map(vehicle => (
@@ -151,6 +161,7 @@ const RiskPrediction = () => {
             </button>
           </div>
         </div>
+        {(!drivers.length || !vehicles.length) && <div className="mt-4 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-100">Add or import at least one driver and vehicle before running a fleet-specific analysis. <Link className="underline" to="/data-entry">Open Data Entry</Link>.</div>}
       </div>
 
       {/* KPI Cards */}
@@ -186,7 +197,8 @@ const RiskPrediction = () => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="glass-card">
-          <h3 className="text-xl font-semibold text-white mb-4">Risk Distribution</h3>
+          <h3 className="text-xl font-semibold text-white mb-1">{predictions.length ? 'Saved Prediction Outcomes' : 'Training Dataset Labels'}</h3>
+          <p className="mb-4 text-xs text-muted">{predictions.length ? 'Counts from predictions run in this workspace.' : 'Bundled labeled events; not live fleet predictions.'}</p>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -215,6 +227,7 @@ const RiskPrediction = () => {
         <div className="glass-card">
           <h3 className="text-xl font-semibold text-white mb-4">Recent Predictions</h3>
           <div className="space-y-3 max-h-[300px] overflow-y-auto">
+            {!predictions.length && <div className="rounded-lg border border-white/10 bg-white/5 p-5 text-sm text-muted">No predictions have been saved for this fleet yet. Select a driver and vehicle above to score the latest available telemetry.</div>}
             {predictions.slice(0, 5).map((prediction) => (
               <div key={prediction.id} className="p-4 bg-white/5 rounded-lg">
                 <div className="flex justify-between items-center mb-2">
@@ -255,6 +268,7 @@ const RiskPrediction = () => {
             </tr>
           </thead>
           <tbody>
+            {!predictions.length && <tr><td colSpan="7" className="py-8 text-center text-muted">No fleet prediction history yet. Training examples are summarized above; they are not inserted as customer predictions.</td></tr>}
             {predictions.map((prediction) => (
               <tr key={prediction.id} className="hover:bg-white/5">
                 <td className="text-white">{new Date(prediction.prediction_timestamp).toLocaleString()}</td>

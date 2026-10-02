@@ -123,6 +123,7 @@ function StatusChip({ status }) {
 const Tracking = () => {
   /* Fleet data */
   const [trackingData, setTrackingData] = useState([]);
+  const [driverData, setDriverData] = useState([]);
   const [fleetLoading, setFleetLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -147,6 +148,8 @@ const Tracking = () => {
     try {
       const { data } = await api.get('/tracking');
       setTrackingData(data);
+      const drivers = await api.get('/drivers');
+      setDriverData(drivers.data);
       setLastRefresh(new Date());
     } catch { /* silent */ }
     finally { setFleetLoading(false); }
@@ -158,9 +161,17 @@ const Tracking = () => {
     return () => clearInterval(intervalRef.current);
   }, [fetchFleet]);
 
+  useEffect(() => {
+    if (!selectedVehicle) return;
+    const refreshedSelection = trackingData.find((item) => item.vehicle.id === selectedVehicle.vehicle.id);
+    if (refreshedSelection) setSelectedVehicle(refreshedSelection);
+    else setSelectedVehicle(null);
+  }, [trackingData, selectedVehicle]);
+
   /* default map center: first vehicle with GPS, else Mumbai */
-  const defaultCenter = trackingData.length > 0 && trackingData[0].latest_gps
-    ? [trackingData[0].latest_gps.latitude, trackingData[0].latest_gps.longitude]
+  const firstLocatedVehicle = trackingData.find((item) => item.latest_gps?.latitude != null && item.latest_gps?.longitude != null);
+  const defaultCenter = firstLocatedVehicle
+    ? [firstLocatedVehicle.latest_gps.latitude, firstLocatedVehicle.latest_gps.longitude]
     : [19.0760, 72.8777];
 
   /* ── Live tracking controls ─────────────────────────────── */
@@ -215,7 +226,7 @@ const Tracking = () => {
   /* ── Derived: stat counts ───────────────────────────────── */
   const activeCount  = trackingData.filter(d => d.vehicle.status === 'ACTIVE').length;
   const liveCount    = trackingData.filter(d => d.feed_status === 'LIVE').length;
-  const offlineCount = trackingData.filter(d => !d.latest_gps).length;
+  const offlineCount = trackingData.filter(d => d.feed_status === 'NO_DATA').length;
 
   return (
     <div className="tracking-page">
@@ -384,7 +395,7 @@ const Tracking = () => {
 
             {/* Fleet markers */}
             {trackingData.map((d) => {
-              if (!d.latest_gps) return null;
+              if (!d.latest_gps || d.latest_gps.latitude == null || d.latest_gps.longitude == null) return null;
               return (
                 <Marker
                   key={d.vehicle.id}
@@ -427,14 +438,14 @@ const Tracking = () => {
         <div className="tracking-fleet-list">
           <div className="fleet-list-header">
             <h3>Fleet status</h3>
-            <small>{trackingData.length} vehicles</small>
+            <small>{trackingData.length} vehicles · {driverData.filter((driver) => driver.status === 'ACTIVE').length} active drivers</small>
           </div>
           {fleetLoading ? (
             <div className="tracking-loading">
               <span className="loading-spinner" style={{ color: '#9c70ff' }} />
               <span>Loading fleet…</span>
             </div>
-          ) : trackingData.length === 0 ? (
+          ) : trackingData.length === 0 && !driverData.some((driver) => driver.status === 'ACTIVE') ? (
             <div className="tracking-empty">
               <MdDirectionsCar size={32} />
               <b>No vehicles found</b>
@@ -442,6 +453,7 @@ const Tracking = () => {
             </div>
           ) : (
             <div className="fleet-items">
+              {trackingData.length === 0 && <div className="tracking-empty"><MdDirectionsCar size={28} /><b>No vehicles found</b><p>Import or add vehicles to track them here.</p></div>}
               {trackingData.map((d) => (
                 <button
                   key={d.vehicle.id}
@@ -453,10 +465,11 @@ const Tracking = () => {
                 >
                   <div className="fleet-item-top">
                     <span className="fleet-item-id">{d.vehicle.vehicle_id}</span>
-                    <StatusChip status={d.feed_status || 'NO_DATA'} />
+                  <StatusChip status={d.vehicle.status || 'OFFLINE'} />
                   </div>
                   <div className="fleet-item-meta">
                     <span>{d.vehicle.registration_number || 'No reg.'}</span>
+                    {d.driver && <span>{d.driver.name}</span>}
                     <span><MdSpeed size={12} /> {Number(d.vehicle.current_speed || 0).toFixed(0)} km/h</span>
                     <span><MdLocalGasStation size={12} /> {Number(d.vehicle.fuel_level || 0).toFixed(0)}%</span>
                   </div>
@@ -486,10 +499,23 @@ const Tracking = () => {
                   )}
                   {!d.latest_gps && (
                     <div className="fleet-item-coords no-gps">
-                      <MdLocationOff size={11} /> No GPS data available
+                      <MdLocationOff size={11} /> {d.feed_status === 'NO_DATA' ? 'Waiting for GPS data' : 'No GPS data available'}
                     </div>
                   )}
                 </button>
+              ))}
+              <div className="fleet-list-header" style={{ margin: '12px -12px 0', borderTop: '1px solid rgba(255,255,255,.08)' }}>
+                <h3>Active drivers</h3>
+                <small>{driverData.filter((driver) => driver.status === 'ACTIVE').length}</small>
+              </div>
+              {driverData.filter((driver) => driver.status === 'ACTIVE').map((driver) => (
+                <div key={driver.id} className="fleet-item" style={{ cursor: 'default' }}>
+                  <div className="fleet-item-top">
+                    <span className="fleet-item-id">{driver.name}</span>
+                    <StatusChip status="ACTIVE" />
+                  </div>
+                  <div className="fleet-item-meta"><span>{driver.driver_id}</span><span>{driver.phone || 'No phone'}</span></div>
+                </div>
               ))}
             </div>
           )}
@@ -499,7 +525,7 @@ const Tracking = () => {
       {/* Vehicle detail modal */}
       {selectedVehicle && (
         <div
-          className="modal modal-open"
+          className="modal modal-open tracking-detail-overlay"
           role="presentation"
           onClick={(e) => { if (e.target === e.currentTarget) setSelectedVehicle(null); }}
         >
@@ -509,7 +535,7 @@ const Tracking = () => {
                 <span className="tracking-modal-overline">VEHICLE DETAILS</span>
                 <h3>{selectedVehicle.vehicle.vehicle_id}</h3>
               </div>
-              <button className="tracking-modal-close" onClick={() => setSelectedVehicle(null)}>✕</button>
+              <button className="tracking-modal-close" onClick={() => setSelectedVehicle(null)} aria-label="Close vehicle details">&times;</button>
             </div>
 
             <div className="tracking-modal-badges">
@@ -543,12 +569,12 @@ const Tracking = () => {
                 <span className="tracking-modal-overline">GPS READING</span>
                 <div className="tracking-modal-grid" style={{ marginTop: 10 }}>
                   {[
-                    ['Latitude', selectedVehicle.latest_gps.latitude.toFixed(6)],
-                    ['Longitude', selectedVehicle.latest_gps.longitude.toFixed(6)],
+                    ['Latitude', Number(selectedVehicle.latest_gps.latitude).toFixed(6)],
+                    ['Longitude', Number(selectedVehicle.latest_gps.longitude).toFixed(6)],
                     ['Speed', `${Number(selectedVehicle.latest_gps.speed || 0).toFixed(1)} km/h`],
                     ['Heading', `${Number(selectedVehicle.latest_gps.heading || 0).toFixed(0)}°`],
                     ['Altitude', `${Number(selectedVehicle.latest_gps.altitude || 0).toFixed(0)} m`],
-                    ['Last Update', new Date(selectedVehicle.latest_gps.timestamp).toLocaleString()],
+                    ['Last GPS update', selectedVehicle.latest_gps.timestamp ? `${new Date(selectedVehicle.latest_gps.timestamp).toLocaleString()} · ${fmtAge(selectedVehicle.latest_gps.timestamp)}` : 'No timestamp'],
                   ].map(([label, val]) => (
                     <div key={label} className="tracking-modal-row">
                       <span>{label}</span>

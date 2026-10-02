@@ -406,6 +406,11 @@
 .tracking-empty p { color: #63657a; font-size: 12px; margin: 0; }
 
 /* ---- Vehicle detail modal ------------------------- */
+.tracking-detail-overlay {
+  overflow-y: auto;
+  z-index: 2000;
+}
+
 .tracking-modal-box {
   background: linear-gradient(145deg, #191b2b, #10121d);
   border: 1px solid rgba(255, 255, 255, 0.14);
@@ -413,6 +418,8 @@
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(50, 104, 255, 0.2);
   color: #f1f1f7;
   max-width: 520px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   padding: 26px;
   position: relative;
   width: 90vw;

@@ -42,6 +42,14 @@ const KNOWN_HUBS = {
   ahmedabad: { lat: 23.0225, lng: 72.5714, name: 'Ahmedabad' },
   chennai:   { lat: 13.0827, lng: 80.2707, name: 'Chennai' },
   kolkata:   { lat: 22.5726, lng: 88.3639, name: 'Kolkata' },
+  vasai:     { lat: 19.3919, lng: 72.8397, name: 'Vasai' },
+  andheri:   { lat: 19.1197, lng: 72.8464, name: 'Andheri' },
+  borivali:  { lat: 19.2307, lng: 72.8567, name: 'Borivali' },
+  dombivli:  { lat: 19.2183, lng: 73.0867, name: 'Dombivli' },
+  kalyan:    { lat: 19.2437, lng: 73.1355, name: 'Kalyan' },
+  powai:     { lat: 19.1176, lng: 72.9060, name: 'Powai' },
+  thane:     { lat: 19.2183, lng: 72.9781, name: 'Thane' },
+  mumbaiport:{ lat: 18.9388, lng: 72.8354, name: 'Mumbai Port' },
 };
 
 /* Known highway distances in km */
@@ -78,10 +86,11 @@ function calculateRouteStats(start, end, vehicleType) {
   if (!start || !end) return null;
   const s = start.trim().toLowerCase();
   const e = end.trim().toLowerCase();
-  if (s === e) return { distance: 10, duration: 20, fuel: 1.5 };
+  if (s === e) return null;
 
-  let startKey = Object.keys(KNOWN_HUBS).find((k) => s.includes(k));
-  let endKey = Object.keys(KNOWN_HUBS).find((k) => e.includes(k));
+  const hubKeys = Object.keys(KNOWN_HUBS).sort((a, b) => b.length - a.length);
+  let startKey = hubKeys.find((k) => s.includes(k));
+  let endKey = hubKeys.find((k) => e.includes(k));
 
   let distanceKm = 0;
   if (startKey && endKey) {
@@ -102,14 +111,11 @@ function calculateRouteStats(start, end, vehicleType) {
           Math.sin(dLng / 2) ** 2;
       distanceKm = Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 1.28);
     }
-  } else {
-    // Estimator for generic locations
-    distanceKm = 180;
-  }
+  } else return null;
 
   // Speed estimation based on vehicle type
   const avgSpeed = vehicleType === 'Truck' ? 45 : vehicleType === 'Bus' ? 50 : 60; // km/h
-  const durationMin = Math.round((distanceKm / avgSpeed) * 60);
+  const durationMin = Math.max(1, Math.round((distanceKm / avgSpeed) * 60));
 
   // Fuel consumption: km/L curve
   const kmPerLiter =
@@ -125,6 +131,19 @@ function calculateRouteStats(start, end, vehicleType) {
   return { distance: distanceKm, duration: durationMin, fuel: fuelLiters };
 }
 
+function nextRecordId(prefix, records) {
+  const idField = { VH: 'vehicle_id', DR: 'driver_id', JR: 'journey_id' }[prefix];
+  const numbers = records
+    .map((record) => Number(String(record[idField] || '').match(/(\d+)$/)?.[1]))
+    .filter(Number.isFinite);
+  return `${prefix}-${String(Math.max(0, ...numbers) + 1).padStart(3, '0')}`;
+}
+
+function localDateTimeValue(date) {
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return offsetDate.toISOString().slice(0, 16);
+}
+
 /* ── Field configs ──────────────────────────────────────────── */
 const VEHICLE_FIELDS = [
   { name: 'vehicle_id',          label: 'Vehicle ID',           type: 'text',   required: true,  placeholder: 'e.g. VH-001' },
@@ -132,7 +151,7 @@ const VEHICLE_FIELDS = [
   { name: 'vehicle_type',        label: 'Vehicle Type',         type: 'select', required: true,  options: ['Truck', 'Van', 'Bus', 'Car', 'Motorcycle', 'Other'] },
   { name: 'make',                label: 'Make',                 type: 'text',   required: false, placeholder: 'e.g. Tata' },
   { name: 'model',               label: 'Model',                type: 'text',   required: false, placeholder: 'e.g. Ace' },
-  { name: 'year',                label: 'Year',                 type: 'number', required: false, placeholder: 'e.g. 2022', min: 1990, max: 2030 },
+  { name: 'year',                label: 'Year',                 type: 'number', required: false, placeholder: 'e.g. 2022', min: 1900, max: 2100 },
   { name: 'fuel_type',           label: 'Fuel Type',            type: 'select', required: false, options: ['Petrol', 'Diesel', 'Electric', 'CNG', 'LPG', 'Hybrid'] },
   { name: 'status',              label: 'Status',               type: 'select', required: false, options: ['ACTIVE', 'IDLE', 'STOPPED', 'OFFLINE'] },
   { name: 'fuel_level',          label: 'Fuel Level (%)',       type: 'number', required: false, placeholder: '0–100', min: 0, max: 100 },
@@ -157,9 +176,9 @@ const JOURNEY_FIELDS = [
   { name: 'end_location',   label: 'Ending Destination',  type: 'text',   required: true,  placeholder: 'e.g. Solapur, Nashik, or Delhi' },
   { name: 'start_time',     label: 'Departure Time',      type: 'datetime-local', required: true },
   { name: 'end_time',       label: 'Estimated Arrival',   type: 'datetime-local', required: false },
-  { name: 'distance',       label: 'Distance (km)',        type: 'number', required: false, placeholder: 'Auto-calculated' },
-  { name: 'duration',       label: 'Duration (min)',       type: 'number', required: false, placeholder: 'Auto-calculated' },
-  { name: 'fuel_consumed',  label: 'Fuel Required (L)',    type: 'number', required: false, placeholder: 'Auto-calculated' },
+  { name: 'distance',       label: 'Distance (km)',        type: 'number', required: false, placeholder: 'Auto-calculated', min: 0 },
+  { name: 'duration',       label: 'Duration (min)',       type: 'number', required: false, placeholder: 'Auto-calculated', min: 0 },
+  { name: 'fuel_consumed',  label: 'Fuel Required (L)',    type: 'number', required: false, placeholder: 'Auto-calculated', min: 0 },
   { name: 'status',         label: 'Journey Status',       type: 'select', required: false, options: ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'] },
 ];
 
@@ -262,7 +281,8 @@ function FormField({ field, value, onChange, error, vehicleList = [], driverList
         style={baseStyle}
       >
         <option value="">Choose an available vehicle…</option>
-        {vehicleList.map((v) => (
+        {!vehicleList.some((v) => ['ACTIVE', 'IDLE'].includes(v.status) || String(v.id) === String(value)) && <option value="" disabled>No active or idle vehicles available</option>}
+        {vehicleList.filter((v) => ['ACTIVE', 'IDLE'].includes(v.status) || String(v.id) === String(value)).map((v) => (
           <option key={v.id} value={v.id}>
             {v.vehicle_id} — {v.registration_number} ({v.vehicle_type || 'Vehicle'}, Status: {v.status || 'READY'})
           </option>
@@ -280,7 +300,8 @@ function FormField({ field, value, onChange, error, vehicleList = [], driverList
         style={baseStyle}
       >
         <option value="">Choose an available driver…</option>
-        {driverList.map((d) => (
+        {!driverList.some((d) => d.status === 'ACTIVE' || String(d.id) === String(value)) && <option value="" disabled>No active drivers available</option>}
+        {driverList.filter((d) => d.status === 'ACTIVE' || String(d.id) === String(value)).map((d) => (
           <option key={d.id} value={d.id}>
             {d.driver_id} — {d.name} ({d.phone || 'No phone'}, Status: {d.status || 'AVAILABLE'})
           </option>
@@ -387,26 +408,35 @@ const DataEntry = () => {
             const startDt = new Date(start_time);
             if (!isNaN(startDt.getTime())) {
               const arrivalDt = new Date(startDt.getTime() + stats.duration * 60000);
-              const isoArrival = arrivalDt.toISOString().slice(0, 16);
+              const isoArrival = localDateTimeValue(arrivalDt);
               updated.end_time = isoArrival;
             }
           }
           return updated;
         });
         setAutoFilled(true);
+      } else if (autoFilled) {
+        setFormData((prev) => ({ ...prev, distance: '', duration: '', fuel_consumed: '', end_time: '' }));
+        setAutoFilled(false);
       }
+    } else if (autoFilled) {
+      setFormData((prev) => ({ ...prev, distance: '', duration: '', fuel_consumed: '', end_time: '' }));
+      setAutoFilled(false);
     }
-  }, [formData.start_location, formData.end_location, formData.vehicle_id, formData.start_time, activeTab, formOpen, vehicles]);
+  }, [formData.start_location, formData.end_location, formData.vehicle_id, formData.start_time, activeTab, formOpen, vehicles, autoFilled]);
 
   /* ── Form handlers ───────────────────────────────────────── */
   const openNewForm = () => {
     let defaults = { ...cfg.defaultValues };
+    if (activeTab === 'vehicle') defaults.vehicle_id = nextRecordId('VH', records);
+    if (activeTab === 'driver') defaults.driver_id = nextRecordId('DR', records);
     if (activeTab === 'journey') {
-      const now = new Date();
-      defaults.start_time = now.toISOString().slice(0, 16);
-      defaults.journey_id = `JR-${String(records.length + 1).padStart(3, '0')}`;
-      if (vehicles.length > 0) defaults.vehicle_id = vehicles[0].id;
-      if (drivers.length > 0) defaults.driver_id = drivers[0].id;
+      defaults.start_time = localDateTimeValue(new Date());
+      defaults.journey_id = nextRecordId('JR', records);
+      const activeVehicles = vehicles.filter((vehicle) => ['ACTIVE', 'IDLE'].includes(vehicle.status));
+      const activeDrivers = drivers.filter((driver) => driver.status === 'ACTIVE');
+      if (activeVehicles.length > 0) defaults.vehicle_id = activeVehicles[0].id;
+      if (activeDrivers.length > 0) defaults.driver_id = activeDrivers[0].id;
     }
     setFormData(defaults);
     setFormErrors({});
@@ -448,13 +478,17 @@ const DataEntry = () => {
       if (f.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
         errs[f.name] = 'Enter a valid email address.';
       }
-      if (f.type === 'number' && val !== '' && val !== undefined) {
+      if (f.type === 'number' && val !== '' && val !== undefined && val !== null) {
         const n = Number(val);
         if (isNaN(n)) errs[f.name] = 'Must be a number.';
         else if (f.min !== undefined && n < f.min) errs[f.name] = `Minimum value is ${f.min}.`;
         else if (f.max !== undefined && n > f.max) errs[f.name] = `Maximum value is ${f.max}.`;
       }
     });
+    if (activeTab === 'journey' && formData.start_time && formData.end_time
+      && new Date(formData.end_time) <= new Date(formData.start_time)) {
+      errs.end_time = 'Arrival time must be later than departure time.';
+    }
     return errs;
   };
 
@@ -486,6 +520,14 @@ const DataEntry = () => {
       }
       closeForm();
       await fetchRecords();
+      if (activeTab === 'vehicle' || activeTab === 'journey') {
+        const { data } = await api.get('/vehicles');
+        setVehicles(data || []);
+      }
+      if (activeTab === 'driver' || activeTab === 'journey') {
+        const { data } = await api.get('/drivers');
+        setDrivers(data || []);
+      }
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.message || 'Submission failed. Check your data and try again.';
       setNotice({ type: 'error', msg });
@@ -678,7 +720,7 @@ const DataEntry = () => {
               }}>
                 <MdAutoAwesome size={18} color="#a855f7" />
                 <span>
-                  <strong>AI Route Calculator Active:</strong> Distance, ETA, and fuel requirements calculated automatically from chosen route coordinates and vehicle efficiency.
+                  <strong>Route estimate filled:</strong> Distance uses known hub locations, duration uses the selected vehicle type, and fuel is estimated from typical efficiency for that type. Confirm estimates before dispatch.
                 </span>
               </div>
             )}
@@ -708,6 +750,9 @@ const DataEntry = () => {
                   </div>
                 ))}
               </div>
+              {activeTab === 'journey' && formData.start_location && formData.end_location && !autoFilled && (
+                <p className="de-form-hint">We couldn?t match both locations to a known hub. Enter distance, duration, and fuel manually, or use a recognized city such as Mumbai, Pune, Nashik, or Thane.</p>
+              )}
 
               <div className="de-form-actions">
                 <button
