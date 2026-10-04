@@ -124,26 +124,178 @@ img, svg {
 
 .route-loading {
   align-items: center;
-  background: #07111f;
+  background: radial-gradient(circle at 50% 42%, rgba(20, 66, 99, 0.42), transparent 34%), #050a13;
   color: #94a3b8;
   display: flex;
   flex-direction: column;
   font-size: 14px;
-  gap: 16px;
+  gap: 12px;
   justify-content: center;
   min-height: 100vh;
+  overflow: hidden;
+  position: relative;
 }
 
-.route-loading::before {
-  animation: loading-pulse 1.5s ease-in-out infinite;
-  background: linear-gradient(90deg, #1677ff, #00d4a8, #1677ff);
-  background-size: 200% 100%;
-  border-radius: 999px;
+.route-loading::before,
+.route-loading::after {
+  background: rgba(34, 211, 238, 0.18);
+  border-radius: 50%;
   content: '';
-  height: 4px;
-  margin-bottom: 8px;
-  width: min(280px, 60vw);
+  filter: blur(1px);
+  height: 240px;
+  position: absolute;
+  width: 240px;
 }
+
+.route-loading::before { left: -130px; top: 18%; }
+.route-loading::after { bottom: -150px; right: -100px; }
+
+.fleet-loader-brand {
+  align-items: center;
+  color: #f8fafc;
+  display: flex;
+  font-size: 24px;
+  font-weight: 800;
+  gap: 9px;
+  letter-spacing: -0.05em;
+  position: relative;
+  z-index: 1;
+}
+
+.fleet-loader-brand > span:last-child > span { color: #a57aff; }
+.fleet-loader-mark {
+  align-items: center;
+  background: linear-gradient(145deg, #ffffff, #bfaaff);
+  border-radius: 9px;
+  color: #1c1632;
+  display: inline-flex;
+  font-size: 16px;
+  height: 38px;
+  justify-content: center;
+  width: 38px;
+}
+
+.fleet-loader-copy { display: grid; gap: 2px; position: relative; text-align: center; z-index: 1; }
+.fleet-loader-copy strong { color: #eef2ff; font-size: 15px; }
+.fleet-loader-copy span { color: #7f8ea3; font-size: 12px; }
+
+.fleet-loader-scene {
+  height: 190px;
+  margin: 18px 0 2px;
+  position: relative;
+  width: min(390px, 80vw);
+  z-index: 1;
+}
+
+.fleet-loader-vehicle {
+  align-items: center;
+  animation: fleet-vehicle-float 2.2s ease-in-out infinite;
+  background: linear-gradient(145deg, #1c8cff, #0c4cc7);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 22px;
+  box-shadow: 0 0 0 9px rgba(22, 119, 255, 0.08), 0 0 38px rgba(22, 119, 255, 0.48);
+  color: #fff;
+  display: flex;
+  height: 82px;
+  justify-content: center;
+  left: calc(50% - 41px);
+  position: absolute;
+  top: 28px;
+  will-change: transform;
+  width: 82px;
+  z-index: 2;
+}
+
+.fleet-loader-vehicle::after {
+  background: #72f5bf;
+  border-radius: 50%;
+  box-shadow: 0 0 0 5px rgba(114, 245, 191, 0.12), 0 0 18px #72f5bf;
+  content: '';
+  height: 8px;
+  position: absolute;
+  right: 10px;
+  top: 9px;
+  width: 8px;
+}
+
+.fleet-loader-orbit {
+  border: 1px solid rgba(0, 212, 168, 0.35);
+  border-radius: 50%;
+  left: calc(50% - 64px);
+  position: absolute;
+  top: 10px;
+  width: 128px;
+  height: 128px;
+}
+.orbit-one { animation: loader-orbit 2.4s ease-out infinite; }
+.orbit-two { animation: loader-orbit 2.4s 0.8s ease-out infinite; }
+
+.fleet-loader-signal {
+  align-items: center;
+  bottom: 34px;
+  display: flex;
+  gap: 7px;
+  justify-content: center;
+  left: 0;
+  position: absolute;
+  right: 0;
+}
+
+.fleet-loader-signal span {
+  animation: loader-signal 1.5s ease-in-out infinite;
+  background: #00d4a8;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(0, 212, 168, 0.8);
+  height: 5px;
+  opacity: 0.35;
+  width: 5px;
+}
+
+.fleet-loader-signal span:nth-child(2) { animation-delay: 0.18s; }
+.fleet-loader-signal span:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes loader-signal {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.5); }
+}
+
+.fleet-loader-progress {
+  background: rgba(148, 163, 184, 0.15);
+  border-radius: 999px;
+  height: 4px;
+  overflow: hidden;
+  position: relative;
+  width: min(300px, 55vw);
+  z-index: 1;
+}
+
+.fleet-loader-progress span {
+  animation: loader-progress 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  background: linear-gradient(90deg, #1677ff, #00d4a8);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+  transform-origin: left;
+}
+
+.route-loading > small { color: #56657a; font-size: 10px; letter-spacing: 0.12em; position: relative; text-transform: uppercase; z-index: 1; }
+
+@keyframes fleet-vehicle-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-7px) rotate(1deg); }
+}
+
+@keyframes loader-progress {
+  0% { transform: scaleX(0.04); }
+  100% { transform: scaleX(1); }
+}
+
+@keyframes loader-orbit {
+  0% { opacity: 0.1; transform: scale(0.68); }
+  35% { opacity: 0.75; }
+  100% { opacity: 0; transform: scale(1.28); }
+}
+
 
 .page-loading {
   align-items: center;

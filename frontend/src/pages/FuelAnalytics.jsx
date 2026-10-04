@@ -14,15 +14,22 @@ const FuelAnalytics = () => {
 
   const fetchData = async () => {
     try {
-      const [recordsRes, analyticsRes] = await Promise.all([
+      const [recordsResult, analyticsResult] = await Promise.allSettled([
         api.get('/fuel'),
         api.get('/fuel/analytics')
       ]);
-      setFuelRecords(recordsRes.data);
-      setAnalytics(analyticsRes.data);
+      if (recordsResult.status === 'fulfilled') setFuelRecords(recordsResult.value.data);
+      if (analyticsResult.status === 'fulfilled') setAnalytics(analyticsResult.value.data);
+      const failedResult = [recordsResult, analyticsResult].find((result) => result.status === 'rejected');
+      if (failedResult) {
+        console.error('Error fetching fuel data:', failedResult.reason);
+        setError(failedResult.reason.response?.data?.error || 'Some fuel data is unavailable right now. Check the API connection and try again.');
+      } else {
+        setError('');
+      }
     } catch (error) {
       console.error('Error fetching fuel data:', error);
-      setError(error.response?.data?.error || 'Fuel data is unavailable right now. Check the API connection and try again.');
+      setError('Fuel data is unavailable right now. Check the API connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -37,11 +44,16 @@ const FuelAnalytics = () => {
     );
   }
 
-  const chartData = analytics?.vehicle_consumption?.map(vc => ({
+  const consumptionRows = analytics?.vehicle_consumption || [];
+  const totalConsumption = consumptionRows.reduce((sum, vc) => sum + Number(vc.total_consumed || 0), 0);
+  const averageEfficiency = consumptionRows.length
+    ? consumptionRows.reduce((sum, vc) => sum + Number(vc.avg_efficiency || 0), 0) / consumptionRows.length
+    : 0;
+  const chartData = consumptionRows.map(vc => ({
     vehicle: `VH-${vc.vehicle_id}`,
-    consumption: vc.total_consumed,
-    efficiency: vc.avg_efficiency
-  })) || [];
+    consumption: Number(vc.total_consumed || 0),
+    efficiency: Number(vc.avg_efficiency || 0)
+  }));
 
   return (
     <div className="space-y-6 page-enter">
@@ -66,30 +78,28 @@ const FuelAnalytics = () => {
           <div className="text-3xl mb-2">⛽</div>
           <h3 className="text-lg font-semibold text-white">Total Consumption</h3>
           <p className="text-2xl font-bold text-teal">
-            {analytics?.vehicle_consumption?.reduce((sum, vc) => sum + vc.total_consumed, 0).toFixed(1) || 0} L
+            {totalConsumption.toFixed(1)} L
           </p>
         </div>
         <div className="glass-card">
           <div className="text-3xl mb-2">📊</div>
           <h3 className="text-lg font-semibold text-white">Avg Efficiency</h3>
           <p className="text-2xl font-bold text-electric-blue">
-            {analytics?.vehicle_consumption?.length > 0
-              ? (analytics.vehicle_consumption.reduce((sum, vc) => sum + vc.avg_efficiency, 0) / analytics.vehicle_consumption.length).toFixed(2)
-              : 0} km/l
+            {averageEfficiency.toFixed(2)} km/l
           </p>
         </div>
         <div className="glass-card">
           <div className="text-3xl mb-2">🚛</div>
           <h3 className="text-lg font-semibold text-white">Active Vehicles</h3>
           <p className="text-2xl font-bold text-cyan">
-            {analytics?.vehicle_consumption?.length || 0}
+            {consumptionRows.length}
           </p>
         </div>
         <div className="glass-card">
           <div className="text-3xl mb-2">💰</div>
           <h3 className="text-lg font-semibold text-white">Est. Cost</h3>
           <p className="text-2xl font-bold text-warning">
-            ₹{(analytics?.vehicle_consumption?.reduce((sum, vc) => sum + vc.total_consumed, 0) * 100).toFixed(0) || 0}
+            ₹{(totalConsumption * 100).toFixed(0)}
           </p>
         </div>
       </div>

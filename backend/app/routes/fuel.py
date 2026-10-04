@@ -15,7 +15,7 @@ def get_fuel_records():
 @jwt_required()
 def get_fuel_analytics():
     # Vehicle-wise fuel consumption
-    vehicle_consumption = FuelRecord.query.with_entity(
+    vehicle_consumption = FuelRecord.query.with_entities(
         FuelRecord.vehicle_id,
         func.sum(FuelRecord.fuel_consumed).label('total_consumed'),
         func.avg(FuelRecord.fuel_efficiency).label('avg_efficiency')
@@ -25,8 +25,8 @@ def get_fuel_analytics():
         'vehicle_consumption': [
             {
                 'vehicle_id': vc[0],
-                'total_consumed': float(vc[1]),
-                'avg_efficiency': float(vc[2])
+                'total_consumed': float(vc[1] or 0),
+                'avg_efficiency': float(vc[2] or 0)
             }
             for vc in vehicle_consumption
         ]

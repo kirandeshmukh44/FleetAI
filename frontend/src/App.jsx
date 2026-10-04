@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { MdLocalShipping } from 'react-icons/md';
 
 // Pages
 const LandingPage = lazy(() => import('./pages/LandingPage'));
@@ -20,16 +21,31 @@ const DataEntry = lazy(() => import('./pages/DataEntry'));
 // Layouts
 import MainLayout from './layouts/MainLayout';
 
+function FleetLoader({ label }) {
+  return (
+    <div className="route-loading" role="status" aria-live="polite">
+      <div className="fleet-loader-brand"><span className="fleet-loader-mark">F</span><span>Fleet<span>AI</span></span></div>
+      <div className="fleet-loader-copy">
+        <strong>FleetAI</strong>
+        <span>{label}</span>
+      </div>
+      <div className="fleet-loader-scene" aria-hidden="true">
+        <span className="fleet-loader-orbit orbit-one" />
+        <span className="fleet-loader-orbit orbit-two" />
+        <div className="fleet-loader-vehicle"><MdLocalShipping size={42} /></div>
+        <div className="fleet-loader-signal"><span /><span /><span /></div>
+      </div>
+      <div className="fleet-loader-progress"><span /></div>
+      <small>Connecting fleet · GPS · analytics</small>
+    </div>
+  );
+}
+
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <div className="route-loading">
-        <span className="loading-spinner" />
-        <span>Loading FleetAI...</span>
-      </div>
-    );
+    return <FleetLoader label="Loading secure session..." />;
   }
 
   if (!user) {
@@ -45,10 +61,7 @@ function App() {
       <BrowserRouter>
         <Suspense
           fallback={
-            <div className="route-loading">
-              <span className="loading-spinner" />
-              <span>Preparing your workspace...</span>
-            </div>
+            <FleetLoader label="Loading workspace modules..." />
           }
         >
           <Routes>
