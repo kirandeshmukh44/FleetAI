@@ -617,8 +617,8 @@
 
 @media (max-width: 700px) {
   .tracking-header { align-items: flex-start; flex-direction: column; }
-  .tracking-header-actions { width: 100%; }
-  .tracking-btn { flex: 1; }
+  .tracking-header-actions { width: 100%; flex-wrap: wrap; }
+  .tracking-btn { flex: 1; min-width: 120px; }
   .live-panel-grid { grid-template-columns: 1fr 1fr; }
   .tracking-detail-overlay { align-items: flex-end; padding: 0; }
   .tracking-modal-box {
@@ -629,6 +629,34 @@
   }
   .tracking-modal-grid { grid-template-columns: 1fr; }
   .tracking-map-card { height: 320px; }
+  .tracking-stats-bar { gap: 8px; }
+  .tracking-stat { flex: 1; min-width: 100px; padding: 6px 10px; }
+  .tracking-stat span { font-size: 14px; }
+  .tracking-stat small { font-size: 10px; }
+}
+
+@media (max-width: 480px) {
+  .tracking-header h1 { font-size: 24px; }
+  .tracking-header p { font-size: 13px; }
+  .tracking-stats-bar { gap: 6px; }
+  .tracking-stat { min-width: 80px; padding: 6px 8px; }
+  .tracking-stat span { font-size: 13px; }
+  .tracking-stat small { font-size: 9px; }
+  .tracking-map-card { height: 280px; }
+  .tracking-fleet-list { max-height: 300px; }
+  .fleet-item { padding: 8px 10px; }
+  .fleet-item-id { font-size: 12px; }
+  .fleet-item-meta { font-size: 10px; gap: 8px; }
+  .journey-progress-panel { padding: 12px 14px; }
+  .journey-progress-heading strong { font-size: 13px; }
+  .journey-progress-value { font-size: 18px; }
+  .journey-progress-meta { font-size: 10px; gap: 12px; flex-wrap: wrap; }
+  .tracking-modal-box { padding: 18px; }
+  .tracking-modal-header h3 { font-size: 18px; }
+  .tracking-modal-grid { gap: 0; }
+  .tracking-modal-row { padding: 8px 10px; }
+  .tracking-modal-row span { font-size: 10px; }
+  .tracking-modal-row b { font-size: 12px; }
 }
 
 @keyframes slideInUp {
@@ -641,9 +669,11 @@ html[data-theme='light'] .tracking-header h1 { color: #172033; }
 html[data-theme='light'] .tracking-header p,
 html[data-theme='light'] .tracking-eyebrow { color: #64748b; }
 html[data-theme='light'] .tracking-btn.subtle { background: #ffffff; border-color: #cbd9e7; color: #31516d; }
+html[data-theme='light'] .tracking-btn.subtle:hover { background: #f1f5f9; }
 html[data-theme='light'] .tracking-demo-notice { background: #edf6fb; border-color: #b9d7ea; color: #35617f; }
 html[data-theme='light'] .tracking-stat { background: #ffffff; border-color: #d2dfeb; color: #53657a; }
 html[data-theme='light'] .tracking-stat span { color: #172033; }
+html[data-theme='light'] .tracking-stat small { color: #64748b; }
 html[data-theme='light'] .tracking-map-card { background: #e6f0f6; border-color: #b9ccdb; }
 html[data-theme='light'] .map-legend { background: rgba(255, 255, 255, 0.92); border-color: #cbd9e7; color: #31516d; }
 html[data-theme='light'] .tracking-fleet-list { background: linear-gradient(145deg, #ffffff, #f3f8fb); border-color: #d2dfeb; }
@@ -660,6 +690,7 @@ html[data-theme='light'] .tracking-empty,
 html[data-theme='light'] .tracking-empty p { color: #64748b; }
 html[data-theme='light'] .journey-progress-heading strong { color: #172033; }
 html[data-theme='light'] .journey-progress-meta { color: #35617f; }
+html[data-theme='light'] .journey-progress-track { background: #e2e8f0; }
 html[data-theme='light'] .tracking-modal-box { background: #ffffff; border-color: #d2dfeb; color: #172033; }
 html[data-theme='light'] .tracking-modal-header h3,
 html[data-theme='light'] .tracking-modal-row b { color: #172033; }
@@ -668,6 +699,25 @@ html[data-theme='light'] .tracking-modal-row span { color: #64748b; }
 html[data-theme='light'] .tracking-modal-grid { background: #f5f9fc; border-color: #d8e3ed; }
 html[data-theme='light'] .tracking-modal-row,
 html[data-theme='light'] .tracking-modal-footer { border-color: #d8e3ed; }
+html[data-theme='light'] .tracking-loading { color: #64748b; }
+html[data-theme='light'] .live-panel-item { color: #64748b; }
+html[data-theme='light'] .live-panel-item svg { color: #94a3b8; }
+html[data-theme='light'] .live-panel-item label { color: #64748b; }
+html[data-theme='light'] .live-panel-item span { color: #172033; }
+html[data-theme='light'] .tracking-detail-overlay { background: rgba(0, 0, 0, 0.4); }
+html[data-theme='light'] .tracking-modal-close { background: #f1f5f9; border-color: #e2e8f0; color: #64748b; }
+html[data-theme='light'] .tracking-modal-close:hover { background: #e2e8f0; color: #172033; }
+html[data-theme='light'] .journey-progress-panel { background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(50, 104, 255, 0.04)); border-color: rgba(129, 140, 248, 0.2); }
+html[data-theme='light'] .live-tracking-panel.is-active { background: linear-gradient(135deg, rgba(50, 104, 255, 0.06), rgba(149, 80, 232, 0.06)); border-color: rgba(50, 104, 255, 0.15); }
+html[data-theme='light'] .live-tracking-panel.is-inactive { background: #ffffff; border-color: #e2e8f0; }
+html[data-theme='light'] .route-analytics-header { border-color: #e2e8f0; }
+html[data-theme='light'] .route-analytics-header h3 { color: #172033; }
+html[data-theme='light'] .route-analytics-header p { color: #64748b; }
+html[data-theme='light'] .route-analytics-legend { color: #64748b; }
+html[data-theme='light'] .route-analytics-item { background: #ffffff; border-color: #e2e8f0; }
+html[data-theme='light'] .route-analytics-item:hover { background: #f8fafc; border-color: #cbd9e7; }
+html[data-theme='light'] .route-name { color: #172033; }
+html[data-theme='light'] .tracking-empty.standalone { background: #f8fafc; border-color: #e2e8f0; }
 
 /* ---- Active btn state ----------------------------- */
 .tracking-btn.active-btn {

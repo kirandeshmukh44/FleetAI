@@ -44,6 +44,11 @@ const RiskPrediction = () => {
       setNotice('Choose a driver and vehicle to run a prediction.');
       return;
     }
+    if (!drivers.some((driver) => driver.id === selectedDriver)
+      || !vehicles.some((vehicle) => vehicle.id === selectedVehicle)) {
+      setNotice('The selected driver or vehicle is no longer available. Refresh the list and try again.');
+      return;
+    }
 
     setPredicting(true);
     try {

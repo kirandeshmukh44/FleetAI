@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.models import Journey, Vehicle, Driver
 from app.database.db import db
 from app.utils.auth import current_user_id
+from app.utils.validation import JOURNEY_ID_RE, clean
 from sqlalchemy import func
 import math
 
@@ -92,6 +93,9 @@ def create_journey():
         return jsonify({'error': f"Required fields: {', '.join(missing)}"}), 400
 
     journey_id = str(data['journey_id']).strip()
+    journey_id = journey_id.upper()
+    if not JOURNEY_ID_RE.fullmatch(journey_id):
+        return jsonify({'error': 'Journey ID must use format JR-001.'}), 400
     if Journey.query.filter_by(journey_id=journey_id).first():
         return jsonify({'error': 'Journey ID already exists. Choose another ID.'}), 409
 
@@ -161,8 +165,8 @@ def create_journey():
         driver_id=driver.id,
         start_time=start_time,
         end_time=end_time,
-        start_location=str(data['start_location']).strip(),
-        end_location=str(data['end_location']).strip(),
+        start_location=clean(data['start_location']),
+        end_location=clean(data['end_location']),
         status=status,
         **numbers,
     )

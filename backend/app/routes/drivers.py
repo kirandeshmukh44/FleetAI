@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify
+import re
 from flask_jwt_extended import jwt_required
 from app.models import Driver
 from app.database.db import db
 from datetime import date
 from sqlalchemy.exc import IntegrityError
 from app.utils.auth import current_user_id
+from app.utils.validation import DRIVER_ID_RE, EMAIL_RE, NAME_RE, PHONE_RE, clean
 
 drivers_bp = Blueprint('drivers', __name__)
 
@@ -42,6 +44,18 @@ def create_driver():
     missing = [field for field in ('driver_id', 'name') if not str(data.get(field) or '').strip()]
     if missing:
         return jsonify({'error': f"Required fields: {', '.join(missing)}"}), 400
+    data['driver_id'] = clean(data['driver_id']).upper()
+    data['name'] = clean(data['name'])
+    if not DRIVER_ID_RE.fullmatch(data['driver_id']):
+        return jsonify({'error': 'Driver ID must use format DR-001.'}), 400
+    if not NAME_RE.fullmatch(data['name']):
+        return jsonify({'error': 'Enter a valid driver name.'}), 400
+    if data.get('email') and not EMAIL_RE.fullmatch(clean(data['email'])):
+        return jsonify({'error': 'Enter a valid email address.'}), 400
+    if data.get('phone') and not PHONE_RE.fullmatch(clean(data['phone'])):
+        return jsonify({'error': 'Enter a valid Indian phone number.'}), 400
+    if data.get('license_number') and not re.fullmatch(r'^[A-Z]{2}\d{2}\s?\d{11}$', clean(data['license_number']).upper()):
+        return jsonify({'error': 'Enter a valid driving license number.'}), 400
     if data.get('status') and data['status'] not in {'ACTIVE', 'INACTIVE', 'ON_LEAVE'}:
         return jsonify({'error': 'Invalid driver status.'}), 400
     if data.get('risk_level') and data['risk_level'] not in {'LOW', 'MEDIUM', 'HIGH'}:
@@ -66,6 +80,24 @@ def create_driver():
 def update_driver(id):
     driver = Driver.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     data = request.get_json(silent=True) or {}
+    allowed = {'driver_id', 'name', 'email', 'phone', 'license_number', 'license_expiry', 'status', 'risk_level'}
+    unknown = set(data) - allowed
+    if unknown:
+        return jsonify({'error': f"Unsupported driver fields: {', '.join(sorted(unknown))}"}), 400
+    if 'driver_id' in data:
+        data['driver_id'] = clean(data['driver_id']).upper()
+        if not DRIVER_ID_RE.fullmatch(data['driver_id']):
+            return jsonify({'error': 'Driver ID must use format DR-001.'}), 400
+    if 'name' in data:
+        data['name'] = clean(data['name'])
+        if not NAME_RE.fullmatch(data['name']):
+            return jsonify({'error': 'Enter a valid driver name.'}), 400
+    if data.get('email') and not EMAIL_RE.fullmatch(clean(data['email'])):
+        return jsonify({'error': 'Enter a valid email address.'}), 400
+    if data.get('phone') and not PHONE_RE.fullmatch(clean(data['phone'])):
+        return jsonify({'error': 'Enter a valid Indian phone number.'}), 400
+    if data.get('license_number') and not re.fullmatch(r'^[A-Z]{2}\d{2}\s?\d{11}$', clean(data['license_number']).upper()):
+        return jsonify({'error': 'Enter a valid driving license number.'}), 400
     
     if data.get('license_expiry'):
         try:

@@ -636,6 +636,33 @@ html[data-theme='light'] .auth-theme-toggle:hover { background: #e8f2f8; color: 
   }
 }
 
+@media (max-width: 600px) {
+  .auth-form-panel { padding: 60px 20px 40px; }
+  .auth-form-container { max-width: 100%; }
+  .auth-form-header h2 { font-size: 28px; }
+  .auth-form-header p { font-size: 13px; }
+  .auth-submit-btn { min-height: 48px; font-size: 14px; }
+  .auth-theme-toggle { top: 20px; right: 20px; padding: 0 8px; font-size: 11px; }
+  .auth-theme-toggle span { display: none; }
+}
+
+@media (max-width: 480px) {
+  .auth-form-panel { padding: 50px 16px 30px; }
+  .auth-form-header h2 { font-size: 24px; }
+  .auth-form-header p { font-size: 12px; }
+  .auth-label { font-size: 12px; }
+  .auth-input-wrapper { min-height: 46px; padding: 0 12px; }
+  .auth-input { font-size: 14px; }
+  .auth-submit-btn { min-height: 46px; font-size: 13px; }
+  .auth-quick-demo { font-size: 11px; padding: 6px 10px; }
+  .auth-demo-btn { padding: 4px 8px; font-size: 10px; }
+  .auth-switch-text { font-size: 12px; }
+  .auth-security-badge { font-size: 11px; margin-top: 20px; padding-top: 16px; }
+  .auth-form-footer { font-size: 11px; bottom: 16px; }
+  .auth-back-btn { top: 16px; left: 16px; font-size: 12px; }
+  .auth-theme-toggle { top: 16px; right: 16px; min-height: 32px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-form-container,
   .auth-submit-btn,

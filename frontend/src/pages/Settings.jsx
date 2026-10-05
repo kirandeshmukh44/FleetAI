@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import '../styles/settings.css';
+import { VALIDATION, validateEmail, validatePassword } from '../utils/validation';
 
 const Settings = () => {
   const { user, checkAuth } = useAuth();
@@ -48,6 +49,21 @@ const Settings = () => {
     e.preventDefault();
     setSaving(true);
     setNotice({ type: '', text: '' });
+    if (!VALIDATION.username.test(username.trim())) {
+      setNotice({ type: 'error', text: 'Username must start with a letter and be 3–30 characters.' });
+      setSaving(false);
+      return;
+    }
+    if (!validateEmail(email)) {
+      setNotice({ type: 'error', text: 'Enter a valid email address.' });
+      setSaving(false);
+      return;
+    }
+    if (newPassword && !validatePassword(newPassword)) {
+      setNotice({ type: 'error', text: 'New password must be between 6 and 128 characters.' });
+      setSaving(false);
+      return;
+    }
     try {
       const payload = { username, email };
       if (newPassword) {

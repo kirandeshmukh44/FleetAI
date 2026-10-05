@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import '../styles/auth.css';
+import { validatePassword } from '../utils/validation';
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -10,7 +11,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'light');
   const { user, login } = useAuth();
   const navigate = useNavigate();
 
@@ -28,6 +29,14 @@ const LoginPage = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
     setError('');
+    if (!username.trim()) {
+      setError('Username is required.');
+      return;
+    }
+    if (!validatePassword(password)) {
+      setError('Password must be between 6 and 128 characters.');
+      return;
+    }
     setLoading(true);
     try {
       await login(username.trim(), password);

@@ -363,3 +363,80 @@
     transform: translateY(0);
   }
 }
+
+/* Light mode theme */
+html[data-theme='light'] .settings-page { color: #172033; }
+html[data-theme='light'] .settings-header h1 { color: #172033; }
+html[data-theme='light'] .settings-header p,
+html[data-theme='light'] .settings-eyebrow { color: #64748b; }
+html[data-theme='light'] .settings-nav { background: #ffffff; border-color: #e2e8f0; }
+html[data-theme='light'] .settings-tab-btn { color: #64748b; }
+html[data-theme='light'] .settings-tab-btn:hover { background: #f1f5f9; color: #172033; }
+html[data-theme='light'] .settings-tab-btn.is-active { background: linear-gradient(90deg, rgba(50, 104, 255, 0.1), rgba(139, 92, 246, 0.08)); border-color: rgba(50, 104, 255, 0.2); color: #3268ff; }
+html[data-theme='light'] .settings-content-card { background: #ffffff; border-color: #e2e8f0; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08); }
+html[data-theme='light'] .settings-content-card::before { background: radial-gradient(circle at top right, rgba(139, 92, 246, 0.06), transparent 70%); }
+html[data-theme='light'] .settings-section-head { border-color: #e2e8f0; }
+html[data-theme='light'] .settings-section-head h2 { color: #172033; }
+html[data-theme='light'] .settings-section-head p { color: #64748b; }
+html[data-theme='light'] .settings-profile-badge-row { background: #f8fafc; border-color: #e2e8f0; }
+html[data-theme='light'] .settings-profile-meta h3 { color: #172033; }
+html[data-theme='light'] .settings-profile-meta p { color: #64748b; }
+html[data-theme='light'] .settings-role-tag { background: rgba(50, 104, 255, 0.1); border-color: rgba(50, 104, 255, 0.2); color: #3268ff; }
+html[data-theme='light'] .settings-label { color: #334155; }
+html[data-theme='light'] .settings-input,
+html[data-theme='light'] .settings-select { background: #f8fafc; border-color: #cbd9e7; color: #172033; }
+html[data-theme='light'] .settings-input:focus,
+html[data-theme='light'] .settings-select:focus { border-color: #3268ff; }
+html[data-theme='light'] .settings-range-box { background: #f8fafc; border-color: #e2e8f0; }
+html[data-theme='light'] .settings-range-labels { color: #64748b; }
+html[data-theme='light'] .settings-checkbox-card { background: #f8fafc; border-color: #e2e8f0; }
+html[data-theme='light'] .settings-checkbox-card:hover { background: #f1f5f9; border-color: #cbd9e7; }
+html[data-theme='light'] .settings-checkbox-card span { color: #172033; }
+
+/* ---- Responsive ----------------------------------- */
+@media (max-width: 900px) {
+  .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .settings-header { margin-bottom: 20px; }
+  .settings-header h1 { font-size: 24px; }
+  .settings-header p { font-size: 13px; }
+  .settings-nav { padding: 10px; }
+  .settings-tab-btn { padding: 10px 12px; font-size: 12px; }
+  .settings-tab-icon { font-size: 16px; }
+  .settings-content-card { padding: 20px; }
+  .settings-section-head { margin-bottom: 20px; padding-bottom: 12px; }
+  .settings-section-head h2 { font-size: 18px; }
+  .settings-section-head p { font-size: 12px; }
+  .settings-profile-badge-row { flex-direction: column; align-items: flex-start; gap: 14px; padding: 14px; }
+  .settings-avatar-large { height: 56px; width: 56px; font-size: 24px; }
+  .settings-profile-meta h3 { font-size: 16px; }
+  .settings-profile-meta p { font-size: 12px; }
+  .settings-form-grid { gap: 14px; grid-template-columns: 1fr; }
+  .settings-field { gap: 6px; }
+  .settings-label { font-size: 11px; }
+  .settings-input,
+  .settings-select { min-height: 40px; font-size: 13px; padding: 0 12px; }
+  .settings-range-box { padding: 12px 14px; }
+  .settings-range-labels { font-size: 10px; }
+  .settings-checkbox-card { padding: 12px 14px; }
+  .settings-checkbox-card span { font-size: 12px; }
+  .settings-submit-btn { min-height: 40px; font-size: 12px; padding: 0 20px; }
+  .settings-notice { font-size: 12px; padding: 10px 12px; }
+}
+
+@media (max-width: 480px) {
+  .settings-header h1 { font-size: 22px; }
+  .settings-header p { font-size: 12px; }
+  .settings-content-card { padding: 16px; }
+  .settings-section-head h2 { font-size: 16px; }
+  .settings-form-grid { gap: 12px; }
+  .settings-profile-badge-row { padding: 12px; }
+  .settings-avatar-large { height: 48px; width: 48px; font-size: 20px; }
+  .settings-input,
+  .settings-select { font-size: 12px; }
+  .settings-submit-btn { width: 100%; }
+}

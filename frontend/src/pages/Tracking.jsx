@@ -214,6 +214,10 @@ const Tracking = () => {
 
     if (trackingResult.status === 'fulfilled') {
       setTrackingData(trackingResult.value.data);
+      // Only show error if API call failed, not if data is empty
+      if (!trackingResult.value.data || trackingResult.value.data.length === 0) {
+        // No error - just empty data
+      }
     } else {
       const error = trackingResult.reason;
       const status = error?.response?.status;
@@ -229,6 +233,12 @@ const Tracking = () => {
     }
     if (driversResult.status === 'fulfilled') {
       setDriverData(driversResult.value.data);
+    } else if (driversResult.status === 'rejected') {
+      const error = driversResult.reason;
+      const status = error?.response?.status;
+      if (status === 401) {
+        setFleetError('Your session has expired. Please sign in again.');
+      }
     }
     if (trackingResult.status === 'fulfilled' || driversResult.status === 'fulfilled') {
       setLastRefresh(new Date());
@@ -359,7 +369,7 @@ const Tracking = () => {
         <div className="tracking-empty standalone">
           <MdDirectionsCar size={32} />
           <b>No vehicles found</b>
-          <p>Add a vehicle, driver, and journey from <strong>Data Entry</strong> to start tracking them here.</p>
+          <p>Add vehicles from <strong>Data Entry</strong> first, then assign drivers and create journeys to start tracking them on the map.</p>
         </div>
       )}
 
@@ -440,11 +450,11 @@ const Tracking = () => {
             {flyTo && <RecenterMap center={flyTo} zoom={8} />}
 
             {/* ── Active journey route line ── */}
-            {selectedJourney && journeyPosition && selectedDest && (
+            {selectedJourney && journeyRoute.length > 0 && (
               <>
                 <Polyline
-                  positions={[selectedStart, selectedDest]}
-                  pathOptions={{ color: '#818cf8', weight: 4, opacity: 0.55, dashArray: '8, 6' }}
+                  positions={journeyRoute}
+                  pathOptions={{ color: '#818cf8', weight: 4, opacity: 0.7 }}
                 />
                 <Marker position={selectedDest} icon={destinationIcon}>
                   <Popup>
@@ -536,7 +546,7 @@ const Tracking = () => {
                 <div className="tracking-empty">
                   <MdDirectionsCar size={32} />
                   <b>No vehicles found</b>
-                  <p>Add a vehicle, driver, and journey from Data Entry to start tracking.</p>
+                  <p>Add vehicles from Data Entry to start tracking.</p>
                 </div>
               ) : (
                 <div className="fleet-items">
@@ -544,7 +554,7 @@ const Tracking = () => {
                     <div className="tracking-empty">
                       <MdDirectionsCar size={28} />
                       <b>No vehicles found</b>
-                      <p>Add a vehicle, driver, and journey from Data Entry.</p>
+                      <p>Add vehicles from Data Entry.</p>
                     </div>
                   )}
 
@@ -605,18 +615,43 @@ const Tracking = () => {
                         <h3>Active drivers</h3>
                         <small>{driverData.filter(d => d.status === 'ACTIVE').length}</small>
                       </div>
-                      {driverData.filter(d => d.status === 'ACTIVE').map((driver) => (
-                        <div key={driver.id} className="fleet-item" style={{ cursor: 'default' }}>
-                          <div className="fleet-item-top">
-                            <span className="fleet-item-id">{driver.name}</span>
-                            <StatusChip status="ACTIVE" />
-                          </div>
-                          <div className="fleet-item-meta">
-                            <span>{driver.driver_id}</span>
-                            <span>{driver.phone || 'No phone'}</span>
-                          </div>
-                        </div>
-                      ))}
+                      {driverData.filter(d => d.status === 'ACTIVE').map((driver) => {
+                        // Find vehicle assigned to this driver
+                        const driverVehicle = trackingData.find(d => d.driver?.id === driver.id);
+                        return (
+                          <button
+                            key={driver.id}
+                            className={`fleet-item ${selectedVehicle?.vehicle.id === driverVehicle?.vehicle.id ? 'is-selected' : ''}`}
+                            onClick={() => {
+                              if (driverVehicle) {
+                                setSelectedVehicle(driverVehicle);
+                                const pos = vehiclePosition(driverVehicle);
+                                if (pos) setFlyTo(pos);
+                              }
+                            }}
+                            style={{ cursor: driverVehicle ? 'pointer' : 'default' }}
+                          >
+                            <div className="fleet-item-top">
+                              <span className="fleet-item-id">{driver.name}</span>
+                              <StatusChip status="ACTIVE" />
+                            </div>
+                            <div className="fleet-item-meta">
+                              <span>{driver.driver_id}</span>
+                              <span>{driver.phone || 'No phone'}</span>
+                              {driverVehicle && (
+                                <span style={{ color: '#6366f1' }}>
+                                  <MdDirectionsCar size={12} /> {driverVehicle.vehicle.vehicle_id}
+                                </span>
+                              )}
+                            </div>
+                            {!driverVehicle && (
+                              <div style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                                No vehicle assigned
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
                     </>
                   )}
 

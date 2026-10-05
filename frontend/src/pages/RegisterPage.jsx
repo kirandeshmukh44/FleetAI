@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import '../styles/auth.css';
+import { VALIDATION, validateEmail, validatePassword } from '../utils/validation';
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({ fullName: '', username: '', email: '', password: '', confirm: '' });
@@ -10,7 +11,7 @@ const RegisterPage = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'light');
   const { register } = useAuth();
   const navigate = useNavigate();
 
@@ -28,12 +29,24 @@ const RegisterPage = () => {
     event.preventDefault();
     setError('');
 
+    if (!formData.fullName.trim() || !/^[A-Za-z][A-Za-z .'-]{1,99}$/.test(formData.fullName.trim())) {
+      setError('Enter a valid full name.');
+      return;
+    }
+    if (!VALIDATION.username.test(formData.username.trim())) {
+      setError('Username must start with a letter and be 3–30 characters.');
+      return;
+    }
+    if (!validateEmail(formData.email)) {
+      setError('Enter a valid email address.');
+      return;
+    }
     if (formData.password !== formData.confirm) {
       setError('Passwords do not match.');
       return;
     }
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters.');
+    if (!validatePassword(formData.password)) {
+      setError('Password must be between 6 and 128 characters.');
       return;
     }
 

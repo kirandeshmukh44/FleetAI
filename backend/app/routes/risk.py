@@ -66,8 +66,11 @@ def get_model_info():
 @jwt_required()
 def predict_risk():
     data = request.get_json(silent=True) or {}
-    driver_id = data.get('driver_id')
-    vehicle_id = data.get('vehicle_id')
+    try:
+        driver_id = int(data.get('driver_id'))
+        vehicle_id = int(data.get('vehicle_id'))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Choose a valid driver and vehicle.'}), 400
     
     # Get driver and vehicle data for features
     owner_id = current_user_id()

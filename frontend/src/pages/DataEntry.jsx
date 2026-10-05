@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../services/api';
 import '../styles/data-entry.css';
+import { VALIDATION } from '../utils/validation';
 import {
   MdDirectionsCar,
   MdPeople,
@@ -89,8 +90,8 @@ function calculateRouteStats(start, end, vehicleType) {
   if (s === e) return null;
 
   const hubKeys = Object.keys(KNOWN_HUBS).sort((a, b) => b.length - a.length);
-  let startKey = hubKeys.find((k) => s.includes(k));
-  let endKey = hubKeys.find((k) => e.includes(k));
+  let startKey = hubKeys.find((k) => s.includes(k) || k.includes(s));
+  let endKey = hubKeys.find((k) => e.includes(k) || k.includes(e));
 
   let distanceKm = 0;
   if (startKey && endKey) {
@@ -146,8 +147,8 @@ function localDateTimeValue(date) {
 
 /* ── Field configs ──────────────────────────────────────────── */
 const VEHICLE_FIELDS = [
-  { name: 'vehicle_id',          label: 'Vehicle ID',           type: 'text',   required: true,  placeholder: 'e.g. VH-001' },
-  { name: 'registration_number', label: 'Registration Number',  type: 'text',   required: true,  placeholder: 'e.g. MH12AB1234' },
+  { name: 'vehicle_id',          label: 'Vehicle ID',           type: 'text',   required: true,  placeholder: 'Format: VH-001' },
+  { name: 'registration_number', label: 'Registration Number',  type: 'text',   required: true,  placeholder: 'Format: MH12AB1234' },
   { name: 'vehicle_type',        label: 'Vehicle Type',         type: 'select', required: true,  options: ['Truck', 'Van', 'Bus', 'Car', 'Motorcycle', 'Other'] },
   { name: 'make',                label: 'Make',                 type: 'text',   required: false, placeholder: 'e.g. Tata' },
   { name: 'model',               label: 'Model',                type: 'text',   required: false, placeholder: 'e.g. Ace' },
@@ -158,11 +159,11 @@ const VEHICLE_FIELDS = [
 ];
 
 const DRIVER_FIELDS = [
-  { name: 'driver_id',      label: 'Driver ID',         type: 'text',   required: true,  placeholder: 'e.g. DR-001' },
+  { name: 'driver_id',      label: 'Driver ID',         type: 'text',   required: true,  placeholder: 'Format: DR-001' },
   { name: 'name',           label: 'Full Name',         type: 'text',   required: true,  placeholder: 'e.g. Ravi Kumar' },
   { name: 'email',          label: 'Email',             type: 'email',  required: false, placeholder: 'driver@example.com' },
-  { name: 'phone',          label: 'Phone',             type: 'tel',    required: false, placeholder: '+91 98765 43210' },
-  { name: 'license_number', label: 'License Number',    type: 'text',   required: false, placeholder: 'e.g. MH0120220012345' },
+  { name: 'phone',          label: 'Phone',             type: 'tel',    required: false, placeholder: 'Format: 9876543210 or +91 9876543210' },
+  { name: 'license_number', label: 'License Number',    type: 'text',   required: false, placeholder: 'Format: MH0120220012345' },
   { name: 'license_expiry', label: 'License Expiry',    type: 'date',   required: false },
   { name: 'status',         label: 'Status',            type: 'select', required: false, options: ['ACTIVE', 'INACTIVE', 'ON_LEAVE'] },
   { name: 'risk_level',     label: 'Risk Level',        type: 'select', required: false, options: ['LOW', 'MEDIUM', 'HIGH'] },
@@ -333,6 +334,7 @@ function FormField({ field, value, onChange, error, vehicleList = [], driverList
       value={value ?? ''}
       onChange={(e) => onChange(field.name, e.target.value)}
       placeholder={field.placeholder}
+      required={field.required}
       min={field.min}
       max={field.max}
       style={baseStyle}
@@ -391,7 +393,7 @@ const DataEntry = () => {
   useEffect(() => {
     if (activeTab !== 'journey' || !formOpen) return;
     const { start_location, end_location, vehicle_id, start_time } = formData;
-    if (start_location && end_location && start_location.trim().length >= 3 && end_location.trim().length >= 3) {
+    if (start_location && end_location && start_location.trim().length >= 2 && end_location.trim().length >= 2) {
       const chosenVehicle = vehicles.find((v) => String(v.id) === String(vehicle_id));
       const vType = chosenVehicle?.vehicle_type || 'Truck';
       const stats = calculateRouteStats(start_location, end_location, vType);
@@ -478,6 +480,9 @@ const DataEntry = () => {
       if (f.type === 'email' && val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
         errs[f.name] = 'Enter a valid email address.';
       }
+      if (f.name === 'name' && val && !/^[A-Za-z][A-Za-z .'-]{1,99}$/.test(String(val).trim())) {
+        errs[f.name] = 'Enter a valid name using letters and spaces.';
+      }
       if (f.type === 'number' && val !== '' && val !== undefined && val !== null) {
         const n = Number(val);
         if (isNaN(n)) errs[f.name] = 'Must be a number.';
@@ -485,10 +490,62 @@ const DataEntry = () => {
         else if (f.max !== undefined && n > f.max) errs[f.name] = `Maximum value is ${f.max}.`;
       }
     });
-    if (activeTab === 'journey' && formData.start_time && formData.end_time
-      && new Date(formData.end_time) <= new Date(formData.start_time)) {
-      errs.end_time = 'Arrival time must be later than departure time.';
+
+    // Vehicle-specific validations
+    if (activeTab === 'vehicle') {
+      // Registration number validation (Indian format: MH12AB1234)
+      if (formData.registration_number) {
+        const regUpper = String(formData.registration_number).trim().toUpperCase();
+        if (!VALIDATION.registration.test(regUpper)) {
+          errs.registration_number = 'Invalid format. Use format like MH12AB1234 or MH-12-AB-1234';
+        }
+      }
+      // Vehicle ID validation
+      if (formData.vehicle_id) {
+        if (!VALIDATION.vehicleId.test(String(formData.vehicle_id).trim().toUpperCase())) {
+          errs.vehicle_id = 'Invalid format. Use format like VH-001';
+        }
+      }
     }
+
+    // Driver-specific validations
+    if (activeTab === 'driver') {
+      // Driver ID validation
+      if (formData.driver_id) {
+        if (!VALIDATION.driverId.test(String(formData.driver_id).trim().toUpperCase())) {
+          errs.driver_id = 'Invalid format. Use format like DR-001';
+        }
+      }
+      // Phone validation (Indian format)
+      if (formData.phone) {
+        if (!VALIDATION.phone.test(String(formData.phone).trim())) {
+          errs.phone = 'Invalid phone number. Use 10-digit number like 9876543210 or +91 9876543210';
+        }
+      }
+      // License number validation (Indian format)
+      if (formData.license_number) {
+        const licensePattern = /^[A-Z]{2}\d{2}\s?\d{11}$/;
+        const licenseUpper = String(formData.license_number).trim().toUpperCase();
+        if (!licensePattern.test(licenseUpper) && !licensePatternCompact.test(licenseUpper)) {
+          errs.license_number = 'Invalid format. Use format like MH0120220012345';
+        }
+      }
+    }
+
+    // Journey-specific validations
+    if (activeTab === 'journey') {
+      // Journey ID validation
+      if (formData.journey_id) {
+        if (!VALIDATION.journeyId.test(String(formData.journey_id).trim().toUpperCase())) {
+          errs.journey_id = 'Invalid format. Use format like JR-001';
+        }
+      }
+      if (formData.start_time && formData.end_time
+        && new Date(formData.end_time) <= new Date(formData.start_time)) {
+        errs.end_time = 'Arrival time must be later than departure time.';
+      }
+    }
+
     return errs;
   };
 

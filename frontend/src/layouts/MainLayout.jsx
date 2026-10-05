@@ -54,10 +54,10 @@ const menuGroups = [
 const MainLayout = ({ children }) => {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 800);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [databaseStatus, setDatabaseStatus] = useState('checking');
   const [profileOpen, setProfileOpen] = useState(false);
-  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'light');
   const currentPage = menuGroups
     .flatMap((group) => group.items)
     .find((item) => location.pathname.startsWith(item.path));
@@ -82,9 +82,27 @@ const MainLayout = ({ children }) => {
 
   /* Close sidebar on route change on mobile */
   useEffect(() => {
-    if (window.innerWidth <= 800) setSidebarOpen(false);
+    if (window.innerWidth <= 800) {
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(true);
+    }
     setProfileOpen(false);
   }, [location.pathname]);
+
+  /* Handle window resize */
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 800) {
+        setSidebarOpen(false);
+      } else {
+        setSidebarOpen(true);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
