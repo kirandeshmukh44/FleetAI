@@ -44,5 +44,5 @@ class Journey(db.Model):
             'max_speed': self.max_speed,
             'fuel_consumed': self.fuel_consumed,
             'status': self.status,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }

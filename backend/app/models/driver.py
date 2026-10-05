@@ -45,5 +45,5 @@ class Driver(db.Model):
             'risk_score': self.risk_score,
             'fuel_efficiency': self.fuel_efficiency,
             'status': self.status,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }

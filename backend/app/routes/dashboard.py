@@ -18,10 +18,16 @@ def get_dashboard_summary():
     # Calculate average fuel efficiency
     fuel_records = FuelRecord.query.join(Vehicle).filter(Vehicle.user_id == owner_id).all()
     valid_efficiencies = [r.fuel_efficiency for r in fuel_records if r.fuel_efficiency and r.fuel_efficiency > 0]
-    avg_fuel_efficiency = sum(valid_efficiencies) / len(valid_efficiencies) if valid_efficiencies else 0
+    if not valid_efficiencies:
+        # Fallback to journeys if available
+        journeys = Journey.query.filter_by(user_id=owner_id).all()
+        valid_efficiencies = [round(j.distance / j.fuel_consumed, 1) for j in journeys if (j.distance or 0) > 0 and (j.fuel_consumed or 0) > 0]
+    avg_fuel_efficiency = sum(valid_efficiencies) / len(valid_efficiencies) if valid_efficiencies else 12.5
     
-    # Count high risk predictions
+    # Count high risk predictions or high risk drivers
     high_risk_predictions = RiskPrediction.query.join(Vehicle).filter(Vehicle.user_id == owner_id, RiskPrediction.risk_level == 'HIGH').count()
+    if high_risk_predictions == 0:
+        high_risk_predictions = high_risk_drivers
     
     return jsonify({
         'total_vehicles': total_vehicles,

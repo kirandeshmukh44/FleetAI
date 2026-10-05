@@ -25,12 +25,12 @@ class GPSRecord(db.Model):
             'id': self.id,
             'vehicle_id': self.vehicle_id,
             'journey_id': self.journey_id,
-            'timestamp': self.timestamp.isoformat(),
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
             'latitude': self.latitude,
             'longitude': self.longitude,
             'speed': self.speed,
             'heading': self.heading,
             'altitude': self.altitude,
             'accuracy': self.accuracy,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }

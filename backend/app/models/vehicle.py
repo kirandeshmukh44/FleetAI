@@ -44,6 +44,6 @@ class Vehicle(db.Model):
             'risk_level': self.risk_level,
             'last_location_lat': self.last_location_lat,
             'last_location_lng': self.last_location_lng,
-            'last_updated': self.last_updated.isoformat(),
-            'created_at': self.created_at.isoformat()
+            'last_updated': self.last_updated.isoformat() if self.last_updated else None,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }

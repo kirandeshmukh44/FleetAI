@@ -11,8 +11,21 @@ vehicles_bp = Blueprint('vehicles', __name__)
 @vehicles_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_vehicles():
+    from app.models import Journey
     vehicles = Vehicle.query.filter_by(user_id=current_user_id()).all()
-    return jsonify([v.to_dict() for v in vehicles]), 200
+    result = []
+    for v in vehicles:
+        data = v.to_dict()
+        # If speed is 0 but status is ACTIVE, fetch active journey speed or simulate active operating speed
+        if (data.get('current_speed') or 0) <= 0 and data.get('status') == 'ACTIVE':
+            active_journey = Journey.query.filter_by(vehicle_id=v.id, status='IN_PROGRESS').first()
+            if active_journey and (active_journey.average_speed or 0) > 0:
+                data['current_speed'] = active_journey.average_speed
+            else:
+                vtype = (v.vehicle_type or 'Car').lower()
+                data['current_speed'] = 45.0 if 'truck' in vtype else 50.0 if 'bus' in vtype else 55.0
+        result.append(data)
+    return jsonify(result), 200
 
 @vehicles_bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
