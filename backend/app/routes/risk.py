@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.models import RiskPrediction, Driver, Vehicle, DriverBehavior
 from app.database.db import db
 from app.ml.prediction import risk_predictor
+from app.utils.auth import current_user_id
 import json
 import joblib
 import os
@@ -69,8 +70,9 @@ def predict_risk():
     vehicle_id = data.get('vehicle_id')
     
     # Get driver and vehicle data for features
-    driver = Driver.query.get(driver_id)
-    vehicle = Vehicle.query.get(vehicle_id)
+    owner_id = current_user_id()
+    driver = Driver.query.filter_by(id=driver_id, user_id=owner_id).first()
+    vehicle = Vehicle.query.filter_by(id=vehicle_id, user_id=owner_id).first()
     
     if not driver or not vehicle:
         return jsonify({'error': 'Driver or vehicle not found'}), 404
@@ -131,5 +133,5 @@ def predict_risk():
 @risk_bp.route('/history', methods=['GET'])
 @jwt_required()
 def get_risk_history():
-    predictions = RiskPrediction.query.order_by(RiskPrediction.prediction_timestamp.desc()).limit(100).all()
+    predictions = RiskPrediction.query.join(Vehicle).filter(Vehicle.user_id == current_user_id()).order_by(RiskPrediction.prediction_timestamp.desc()).limit(100).all()
     return jsonify([p.to_dict() for p in predictions]), 200

@@ -10,8 +10,6 @@ import {
   MdNotificationsActive,
   MdRoute,
   MdRefresh,
-  MdUpload,
-  MdClose,
   MdLocationOn,
   MdAnalytics,
   MdSpeed,
@@ -49,11 +47,6 @@ const Dashboard = () => {
   const [riskHistory, setRiskHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
-  const [importModalOpen, setImportModalOpen] = useState(false);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [dataType, setDataType] = useState('vehicles');
-  const [importing, setImporting] = useState(false);
-  const [notice, setNotice] = useState('');
 
   useEffect(() => { fetchDashboard(); }, []);
 
@@ -84,23 +77,6 @@ const Dashboard = () => {
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 5);
   }, [riskHistory, trackingData]);
 
-  const handleImport = async (event) => {
-    event.preventDefault();
-    if (!selectedFile) { setNotice('Select a CSV file to import.'); return; }
-    setImporting(true); setNotice('');
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-    formData.append('data_type', dataType);
-    try {
-      const response = await api.post('/import/csv', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
-      setNotice(response.data.message || 'Import completed.');
-      setImportModalOpen(false); setSelectedFile(null);
-      await fetchDashboard();
-    } catch (error) {
-      setNotice(error.response?.data?.error || 'CSV import failed. Check that the file columns match the selected data type.');
-    } finally { setImporting(false); }
-  };
-
   const number = (value, decimals = 0) =>
     Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 
@@ -122,13 +98,7 @@ const Dashboard = () => {
             <MdRefresh size={18} className={loading ? 'spin-icon' : ''} />
             Refresh data
           </button>
-          <button
-            className="dashboard-button primary"
-            onClick={() => { setNotice(''); setImportModalOpen(true); }}
-          >
-            <MdUpload size={18} />
-            Import fleet data
-          </button>
+          <Link className="dashboard-button primary" to="/data-entry">Manage fleet data</Link>
         </div>
       </section>
 
@@ -136,14 +106,6 @@ const Dashboard = () => {
         <div className="dashboard-notice error" role="alert">
           {loadError}
           <button onClick={fetchDashboard}>Retry</button>
-        </div>
-      )}
-      {notice && (
-        <div className="dashboard-notice" role="status">
-          <span>{notice}</span>
-          <button aria-label="Dismiss notification" onClick={() => setNotice('')}>
-            <MdClose size={16} />
-          </button>
         </div>
       )}
 
@@ -340,74 +302,6 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Import modal */}
-      {importModalOpen && (
-        <div
-          className="modal modal-open"
-          role="presentation"
-          onClick={(event) => {
-            if (event.target === event.currentTarget && !importing) setImportModalOpen(false);
-          }}
-        >
-          <div className="modal-box import-modal">
-            <div className="import-modal-heading">
-              <span className="import-modal-icon"><MdUpload size={20} /></span>
-              <button
-                type="button"
-                aria-label="Close import dialog"
-                disabled={importing}
-                onClick={() => setImportModalOpen(false)}
-              >
-                <MdClose size={22} />
-              </button>
-              <span className="panel-overline">DATA MANAGEMENT</span>
-              <h3>Import fleet data</h3>
-              <p>Load a CSV file into the SQLite fleet database.</p>
-            </div>
-            <form onSubmit={handleImport}>
-              <label className="import-label">
-                Data type
-                <select value={dataType} onChange={(event) => setDataType(event.target.value)}>
-                  <option value="vehicles">Vehicles</option>
-                  <option value="drivers">Drivers</option>
-                  <option value="gps">GPS records</option>
-                  <option value="journeys">Journeys</option>
-                  <option value="fuel">Fuel records</option>
-                </select>
-              </label>
-              <label className="import-label">
-                CSV file
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
-                />
-              </label>
-              <div className="import-hint">
-                <span>i</span>
-                <p>Use a CSV with column names matching the selected record type. GPS, journey and fuel imports need matching vehicle IDs already in the database.</p>
-              </div>
-              <div className="import-form-actions">
-                <button
-                  className="dashboard-button subtle"
-                  type="button"
-                  disabled={importing}
-                  onClick={() => setImportModalOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="dashboard-button primary"
-                  type="submit"
-                  disabled={importing || !selectedFile}
-                >
-                  {importing ? 'Importing…' : 'Import CSV'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

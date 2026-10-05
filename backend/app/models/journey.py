@@ -5,6 +5,7 @@ class Journey(db.Model):
     __tablename__ = 'journeys'
     
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     journey_id = db.Column(db.String(50), unique=True, nullable=False)
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
     driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=False)
@@ -27,6 +28,7 @@ class Journey(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'user_id': self.user_id,
             'journey_id': self.journey_id,
             'vehicle_id': self.vehicle_id,
             'vehicle_label': f"{self.vehicle.vehicle_id} ({self.vehicle.registration_number})" if self.vehicle else f"Vehicle #{self.vehicle_id}",

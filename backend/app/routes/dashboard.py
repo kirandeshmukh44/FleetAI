@@ -1,25 +1,27 @@
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from app.models import Vehicle, Driver, Journey, FuelRecord, DriverBehavior, RiskPrediction
+from app.utils.auth import current_user_id
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
 @dashboard_bp.route('/summary', methods=['GET'])
 @jwt_required()
 def get_dashboard_summary():
-    total_vehicles = Vehicle.query.count()
-    active_vehicles = Vehicle.query.filter_by(status='ACTIVE').count()
-    total_drivers = Driver.query.count()
-    high_risk_drivers = Driver.query.filter_by(risk_level='HIGH').count()
-    total_journeys = Journey.query.count()
+    owner_id = current_user_id()
+    total_vehicles = Vehicle.query.filter_by(user_id=owner_id).count()
+    active_vehicles = Vehicle.query.filter_by(user_id=owner_id, status='ACTIVE').count()
+    total_drivers = Driver.query.filter_by(user_id=owner_id).count()
+    high_risk_drivers = Driver.query.filter_by(user_id=owner_id, risk_level='HIGH').count()
+    total_journeys = Journey.query.filter_by(user_id=owner_id).count()
     
     # Calculate average fuel efficiency
-    fuel_records = FuelRecord.query.all()
+    fuel_records = FuelRecord.query.join(Vehicle).filter(Vehicle.user_id == owner_id).all()
     valid_efficiencies = [r.fuel_efficiency for r in fuel_records if r.fuel_efficiency and r.fuel_efficiency > 0]
     avg_fuel_efficiency = sum(valid_efficiencies) / len(valid_efficiencies) if valid_efficiencies else 0
     
     # Count high risk predictions
-    high_risk_predictions = RiskPrediction.query.filter_by(risk_level='HIGH').count()
+    high_risk_predictions = RiskPrediction.query.join(Vehicle).filter(Vehicle.user_id == owner_id, RiskPrediction.risk_level == 'HIGH').count()
     
     return jsonify({
         'total_vehicles': total_vehicles,

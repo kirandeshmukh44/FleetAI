@@ -4,19 +4,20 @@ from app.models import Driver
 from app.database.db import db
 from datetime import date
 from sqlalchemy.exc import IntegrityError
+from app.utils.auth import current_user_id
 
 drivers_bp = Blueprint('drivers', __name__)
 
 @drivers_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_drivers():
-    drivers = Driver.query.all()
+    drivers = Driver.query.filter_by(user_id=current_user_id()).all()
     return jsonify([d.to_dict() for d in drivers]), 200
 
 @drivers_bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
 def get_driver(id):
-    driver = Driver.query.get_or_404(id)
+    driver = Driver.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     return jsonify(driver.to_dict()), 200
 
 @drivers_bp.route('/', methods=['POST'])
@@ -36,7 +37,7 @@ def create_driver():
         except (TypeError, ValueError):
             return jsonify({'error': 'License expiry must be a valid date.'}), 400
     allowed = {'driver_id', 'name', 'email', 'phone', 'license_number', 'license_expiry', 'status', 'risk_level'}
-    driver = Driver(**{key: value for key, value in data.items() if key in allowed})
+    driver = Driver(user_id=current_user_id(), **{key: value for key, value in data.items() if key in allowed})
     db.session.add(driver)
     try:
         db.session.commit()
@@ -48,7 +49,7 @@ def create_driver():
 @drivers_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_driver(id):
-    driver = Driver.query.get_or_404(id)
+    driver = Driver.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     data = request.get_json(silent=True) or {}
     
     if data.get('license_expiry'):
@@ -71,7 +72,7 @@ def update_driver(id):
 @drivers_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_driver(id):
-    driver = Driver.query.get_or_404(id)
+    driver = Driver.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     db.session.delete(driver)
     db.session.commit()
     return jsonify({'message': 'Driver deleted'}), 200

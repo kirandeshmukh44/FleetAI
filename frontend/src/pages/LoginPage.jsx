@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import '../styles/auth.css';
 
 const LoginPage = () => {
@@ -9,6 +10,7 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'dark');
   const { user, login } = useAuth();
   const navigate = useNavigate();
 
@@ -18,11 +20,10 @@ const LoginPage = () => {
     }
   }, [user, navigate]);
 
-  const fillAdmin = () => {
-    setUsername('admin');
-    setPassword('admin123');
-    setError('');
-  };
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('fleet-theme', theme);
+  }, [theme]);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -77,6 +78,15 @@ const LoginPage = () => {
 
       {/* Right form panel */}
       <div className="auth-form-panel">
+        <button
+          className="auth-theme-toggle"
+          type="button"
+          onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? <MdLightMode size={17} /> : <MdDarkMode size={17} />}
+          <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+        </button>
         <Link className="auth-back-btn" to="/">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -173,11 +183,9 @@ const LoginPage = () => {
               </div>
             </div>
 
-            <div className="auth-quick-demo">
-              <span>Quick test:</span>
-              <button type="button" className="auth-demo-btn" onClick={fillAdmin}>
-                Fill Demo Admin (admin / admin123)
-              </button>
+            <div className="auth-quick-demo fresh-account-note">
+              <span>Fresh workspace:</span>
+              <Link to="/register">Create your first account</Link>
             </div>
 
             <button className="auth-submit-btn" type="submit" disabled={loading}>

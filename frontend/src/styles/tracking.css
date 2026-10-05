@@ -635,3 +635,36 @@
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+html[data-theme='light'] .tracking-page { color: #172033; }
+html[data-theme='light'] .tracking-header h1 { color: #172033; }
+html[data-theme='light'] .tracking-header p,
+html[data-theme='light'] .tracking-eyebrow { color: #64748b; }
+html[data-theme='light'] .tracking-btn.subtle { background: #ffffff; border-color: #cbd9e7; color: #31516d; }
+html[data-theme='light'] .tracking-demo-notice { background: #edf6fb; border-color: #b9d7ea; color: #35617f; }
+html[data-theme='light'] .tracking-stat { background: #ffffff; border-color: #d2dfeb; color: #53657a; }
+html[data-theme='light'] .tracking-stat span { color: #172033; }
+html[data-theme='light'] .tracking-map-card { background: #e6f0f6; border-color: #b9ccdb; }
+html[data-theme='light'] .map-legend { background: rgba(255, 255, 255, 0.92); border-color: #cbd9e7; color: #31516d; }
+html[data-theme='light'] .tracking-fleet-list { background: linear-gradient(145deg, #ffffff, #f3f8fb); border-color: #d2dfeb; }
+html[data-theme='light'] .fleet-list-header { border-color: #d8e3ed; }
+html[data-theme='light'] .fleet-list-header h3,
+html[data-theme='light'] .fleet-item-id { color: #172033; }
+html[data-theme='light'] .fleet-list-header small,
+html[data-theme='light'] .fleet-item-meta,
+html[data-theme='light'] .fleet-item-coords { color: #64748b; }
+html[data-theme='light'] .fleet-item:hover { background: #edf5fa; border-color: #cbd9e7; }
+html[data-theme='light'] .fleet-item.is-selected { background: #e7f1fb; border-color: #9bc7ed; }
+html[data-theme='light'] .tracking-empty b { color: #172033; }
+html[data-theme='light'] .tracking-empty,
+html[data-theme='light'] .tracking-empty p { color: #64748b; }
+html[data-theme='light'] .journey-progress-heading strong { color: #172033; }
+html[data-theme='light'] .journey-progress-meta { color: #35617f; }
+html[data-theme='light'] .tracking-modal-box { background: #ffffff; border-color: #d2dfeb; color: #172033; }
+html[data-theme='light'] .tracking-modal-header h3,
+html[data-theme='light'] .tracking-modal-row b { color: #172033; }
+html[data-theme='light'] .tracking-modal-overline,
+html[data-theme='light'] .tracking-modal-row span { color: #64748b; }
+html[data-theme='light'] .tracking-modal-grid { background: #f5f9fc; border-color: #d8e3ed; }
+html[data-theme='light'] .tracking-modal-row,
+html[data-theme='light'] .tracking-modal-footer { border-color: #d8e3ed; }

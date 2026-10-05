@@ -20,6 +20,8 @@ import {
   MdCalendarToday,
   MdEmail,
   MdShield,
+  MdLightMode,
+  MdDarkMode,
 } from 'react-icons/md';
 
 const menuGroups = [
@@ -55,6 +57,7 @@ const MainLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth > 800);
   const [databaseStatus, setDatabaseStatus] = useState('checking');
   const [profileOpen, setProfileOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'dark');
   const currentPage = menuGroups
     .flatMap((group) => group.items)
     .find((item) => location.pathname.startsWith(item.path));
@@ -83,9 +86,17 @@ const MainLayout = ({ children }) => {
     setProfileOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('fleet-theme', theme);
+  }, [theme]);
+
   const joinDate = user?.created_at
     ? new Date(user.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'long' })
     : null;
+  const displayName = user?.full_name || (user?.username
+    ? user.username.replace(/[_-]+/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase())
+    : 'Administrator');
 
   return (
     <div className="app-shell">
@@ -168,17 +179,22 @@ const MainLayout = ({ children }) => {
 
           {/* User Profile Card */}
           <div className="sidebar-user-card">
-            <button
+            <div
               className="sidebar-user-card-trigger"
+              role="button"
+              tabIndex={0}
               onClick={() => setProfileOpen((o) => !o)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') setProfileOpen((o) => !o);
+              }}
               aria-expanded={profileOpen}
               aria-label="Toggle profile details"
             >
               <div className="user-avatar">
-                {user?.username?.[0]?.toUpperCase() || 'A'}
+                {displayName[0] || 'A'}
               </div>
               <span className="user-identity">
-                <b>{user?.username || 'Administrator'}</b>
+                <b>{displayName}</b>
                 <small>{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Fleet Admin'}</small>
               </span>
               <button
@@ -190,16 +206,16 @@ const MainLayout = ({ children }) => {
               >
                 <MdLogout size={18} />
               </button>
-            </button>
+            </div>
 
             {profileOpen && (
               <div className="sidebar-profile-panel">
                 <div className="profile-panel-header">
                   <div className="profile-avatar-lg">
-                    {user?.username?.[0]?.toUpperCase() || 'A'}
+                    {displayName[0] || 'A'}
                   </div>
                   <div>
-                    <strong>{user?.username || 'Administrator'}</strong>
+                    <strong>{displayName}</strong>
                     <span className="profile-role-badge">
                       <MdShield size={11} />
                       {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Admin'}
@@ -253,6 +269,16 @@ const MainLayout = ({ children }) => {
           </div>
 
           <div className="topbar-right">
+            <button
+              className="theme-toggle"
+              type="button"
+              onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <MdLightMode size={18} /> : <MdDarkMode size={18} />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
             <span
               className={`workspace-health ${
                 databaseStatus === 'unavailable' ? 'is-unavailable' : ''
@@ -268,9 +294,9 @@ const MainLayout = ({ children }) => {
             <span className="topbar-divider" />
             <div className="topbar-user">
               <span className="user-avatar small">
-                {user?.username?.[0]?.toUpperCase() || 'A'}
+                {displayName[0] || 'A'}
               </span>
-              <span>{user?.username || 'Admin'}</span>
+              <span>{displayName}</span>
             </div>
           </div>
         </header>

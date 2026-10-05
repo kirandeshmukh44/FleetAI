@@ -29,6 +29,7 @@ def login():
 def register():
     data = request.get_json(silent=True) or {}
     username = data.get('username')
+    full_name = str(data.get('full_name') or '').strip() or None
     email = data.get('email')
     password = data.get('password')
     
@@ -41,7 +42,7 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({'error': 'Email already exists'}), 400
     
-    user = User(username=username, email=email)
+    user = User(username=username, full_name=full_name, email=email)
     user.set_password(password)
     
     db.session.add(user)

@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from app.models import Vehicle
 from app.database.db import db
 from sqlalchemy.exc import IntegrityError
+from app.utils.auth import current_user_id
 import math
 
 vehicles_bp = Blueprint('vehicles', __name__)
@@ -10,13 +11,13 @@ vehicles_bp = Blueprint('vehicles', __name__)
 @vehicles_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_vehicles():
-    vehicles = Vehicle.query.all()
+    vehicles = Vehicle.query.filter_by(user_id=current_user_id()).all()
     return jsonify([v.to_dict() for v in vehicles]), 200
 
 @vehicles_bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
 def get_vehicle(id):
-    vehicle = Vehicle.query.get_or_404(id)
+    vehicle = Vehicle.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     return jsonify(vehicle.to_dict()), 200
 
 @vehicles_bp.route('/', methods=['POST'])
@@ -41,7 +42,7 @@ def create_vehicle():
     except (TypeError, ValueError):
         return jsonify({'error': 'Year and fuel level must be valid numbers.'}), 400
     allowed = {'vehicle_id', 'registration_number', 'vehicle_type', 'make', 'model', 'year', 'fuel_type', 'status', 'fuel_level'}
-    vehicle = Vehicle(**{key: value for key, value in data.items() if key in allowed})
+    vehicle = Vehicle(user_id=current_user_id(), **{key: value for key, value in data.items() if key in allowed})
     db.session.add(vehicle)
     try:
         db.session.commit()
@@ -53,7 +54,7 @@ def create_vehicle():
 @vehicles_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_vehicle(id):
-    vehicle = Vehicle.query.get_or_404(id)
+    vehicle = Vehicle.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     data = request.get_json(silent=True) or {}
     
     for key, value in data.items():
@@ -69,7 +70,7 @@ def update_vehicle(id):
 @vehicles_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_vehicle(id):
-    vehicle = Vehicle.query.get_or_404(id)
+    vehicle = Vehicle.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     db.session.delete(vehicle)
     db.session.commit()
     return jsonify({'message': 'Vehicle deleted'}), 200

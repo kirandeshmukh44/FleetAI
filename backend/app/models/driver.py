@@ -5,6 +5,7 @@ class Driver(db.Model):
     __tablename__ = 'drivers'
     
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     driver_id = db.Column(db.String(50), unique=True, nullable=False)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True)
@@ -28,6 +29,7 @@ class Driver(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'user_id': self.user_id,
             'driver_id': self.driver_id,
             'name': self.name,
             'email': self.email,

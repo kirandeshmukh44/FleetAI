@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { MdLightMode, MdDarkMode } from 'react-icons/md';
 import heroImage from '../assets/hero-command-center.jpg';
 import telemetryImage from '../assets/telemetry-digital-twin.jpg';
 import highwayImage from '../assets/fleet-highway-motion.jpg';
@@ -144,6 +145,7 @@ const LandingPage = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeVehicle, setActiveVehicle] = useState(vehicleFleet[0]);
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'dark');
 
   const [videoModalOpen, setVideoModalOpen] = useState(false);
 
@@ -165,6 +167,10 @@ const LandingPage = () => {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('fleet-theme', theme);
+  }, [theme]);
 
   // Run Real-time Client-side Random Forest ML Formula
   const calculateRiskSimulation = (speed, harshBrake, harshAccel, weather) => {
@@ -258,6 +264,16 @@ const LandingPage = () => {
           <a href="#fleet" onClick={closeMenu}>Vehicle Fleet</a>
           <a href="#architecture" onClick={closeMenu}>Tech Stack</a>
           <div className="nav-actions">
+            <button
+              className="landing-theme-toggle"
+              type="button"
+              onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+            >
+              {theme === 'dark' ? <MdLightMode size={17} /> : <MdDarkMode size={17} />}
+              <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+            </button>
             <Link className="nav-login" to="/login" onClick={closeMenu}>Sign In</Link>
             <Link className="button-gradient nav-demo" to="/login" onClick={closeMenu}>
               Open Workspace <span aria-hidden="true">→</span>

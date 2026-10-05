@@ -3,13 +3,14 @@ from datetime import datetime
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required
 from app.models import Vehicle, GPSRecord
+from app.utils.auth import current_user_id
 
 tracking_bp = Blueprint('tracking', __name__)
 
 @tracking_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_tracking_data():
-    vehicles = Vehicle.query.all()
+    vehicles = Vehicle.query.filter_by(user_id=current_user_id()).all()
     tracking_data = []
     
     from app.models import Journey
@@ -48,7 +49,7 @@ def get_tracking_data():
 @tracking_bp.route('/<int:vehicle_id>', methods=['GET'])
 @jwt_required()
 def get_vehicle_tracking(vehicle_id):
-    vehicle = Vehicle.query.get_or_404(vehicle_id)
+    vehicle = Vehicle.query.filter_by(id=vehicle_id, user_id=current_user_id()).first_or_404()
     gps_records = GPSRecord.query.filter_by(vehicle_id=vehicle_id).order_by(GPSRecord.timestamp.desc()).limit(100).all()
     
     return jsonify({

@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { MdDarkMode, MdLightMode } from 'react-icons/md';
 import '../styles/auth.css';
 
 const RegisterPage = () => {
-  const [formData, setFormData] = useState({ username: '', email: '', password: '', confirm: '' });
+  const [formData, setFormData] = useState({ fullName: '', username: '', email: '', password: '', confirm: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('fleet-theme') || 'dark');
   const { register } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('fleet-theme', theme);
+  }, [theme]);
 
   const handleChange = (e) => {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -32,7 +39,7 @@ const RegisterPage = () => {
 
     setLoading(true);
     try {
-      await register(formData.username.trim(), formData.email.trim(), formData.password);
+      await register(formData.username.trim(), formData.fullName.trim(), formData.email.trim(), formData.password);
       setSuccess('Account created! Redirecting to login…');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
@@ -103,6 +110,15 @@ const RegisterPage = () => {
 
       {/* Right form panel */}
       <div className="auth-form-panel">
+        <button
+          className="auth-theme-toggle"
+          type="button"
+          onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        >
+          {theme === 'dark' ? <MdLightMode size={17} /> : <MdDarkMode size={17} />}
+          <span>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+        </button>
         <Link className="auth-back-btn" to="/">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -147,6 +163,29 @@ const RegisterPage = () => {
           )}
 
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <div className="auth-field-group">
+              <label className="auth-label" htmlFor="reg-full-name">Full name</label>
+              <div className="auth-input-wrapper">
+                <span className="auth-input-icon" aria-hidden="true">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="5.5" r="2.5" stroke="currentColor" strokeWidth="1.3"/>
+                    <path d="M2.5 13.5C2.5 11 5 9 8 9s5.5 2 5.5 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                  </svg>
+                </span>
+                <input
+                  id="reg-full-name"
+                  name="fullName"
+                  type="text"
+                  className="auth-input"
+                  autoComplete="name"
+                  value={formData.fullName}
+                  onChange={handleChange}
+                  placeholder="Enter your full name"
+                  required
+                />
+              </div>
+            </div>
+
             <div className="auth-field-group">
               <label className="auth-label" htmlFor="reg-username">Username</label>
               <div className="auth-input-wrapper">

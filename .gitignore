@@ -69,3 +69,6 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+
+# Orkestra AI — estado local (nunca versionar)
+.sta/

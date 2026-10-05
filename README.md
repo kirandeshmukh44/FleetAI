@@ -72,16 +72,12 @@ This platform provides centralized fleet management capabilities including:
 - **Random Forest** - Classification Model
 - **Logistic Regression** - Alternative Model
 - **Joblib** - Model Serialization
-- **NumPy** - Numerical Computing
-
-### Database
-- **SQLite** - Database
-- **SQLAlchemy ORM** - Database Interface
-
+7. **Train ML model**
 ### Maps
 - **Leaflet** - Open-Source Maps
 - **OpenStreetMap** - Map Tiles (Free, No API Key Required)
 
+8. **Start Flask server**
 ---
 
 ## 📁 Project Structure
@@ -133,6 +129,14 @@ AI-Based Smart Transportation/
 
 ## 🎨 Color System
 
+To clear the local development workspace and recreate the ownership-aware SQLite schema:
+
+```bash
+cd backend
+python reset_data.py --yes
+```
+
+This removes application users and operational records but keeps the bundled datasets and trained model artifacts.
 The application uses a professional dark technology theme:
 
 - **Deep Navy**: `#07111F` - Background
@@ -197,17 +201,12 @@ The application uses a professional dark technology theme:
    python init_db.py
    ```
 
-7. **Import sample data**
-   ```bash
-   python import_data.py
-   ```
-
-8. **Train ML model**
+7. **Train ML model**
    ```bash
    python train_models.py
    ```
 
-9. **Start Flask server**
+8. **Start Flask server**
    ```bash
    python run.py
    ```
@@ -235,10 +234,19 @@ The application uses a professional dark technology theme:
 
 ---
 
-## 🔐 Default Credentials
+## 🔐 Fresh Workspace
 
-**Username:** `admin`  
-**Password:** `admin123`
+There are no default credentials. Register the first account from `/register`.
+Each account owns its own vehicles, drivers, and journeys; another account cannot see them.
+
+To clear the local development workspace and recreate the ownership-aware SQLite schema:
+
+```bash
+cd backend
+python reset_data.py --yes
+```
+
+This removes application users and operational records but keeps the bundled datasets and trained model artifacts.
 
 ---
 
@@ -254,13 +262,12 @@ The application uses a professional dark technology theme:
 - **fuel_records** - Fuel consumption data
 - **driver_behavior** - Driving behavior events
 - **risk_predictions** - ML risk predictions
-- **csv_imports** - CSV import history
 
 ### Relationships
 
 ```
 User
-  ↓
+   ↓ owns
 Vehicle → Driver
   ↓       ↓
 Journey → GPS Records
@@ -308,9 +315,6 @@ Driver Behavior → Risk Prediction
 - `POST /api/risk/predict` - Predict accident risk
 - `GET /api/risk/history` - Risk prediction history
 
-### CSV Import
-- `POST /api/import/csv` - Import CSV data
-
 ---
 
 ## Machine Learning
@@ -319,6 +323,15 @@ The accident-risk screen loads a persisted Random Forest classifier and preproce
 
 Training uses the 120,000 labeled rows in `driver_behavior_route_anomaly_dataset_with_derived_features.csv`. The target is the observed `route_anomaly` label; the trainer holds out 20% of rows for evaluation and writes `training_metadata.pkl` with the source, row count, and metrics. Risk predictions use speed, acceleration, braking, harsh-event flags, and speeding. The UI shows the current holdout accuracy.
 
+## Recommended User Workflow
+
+1. Register a user account and sign in.
+2. Open **Data Entry** and add at least one vehicle and driver manually.
+3. Add a journey with a start location, destination, departure time, distance, and duration.
+4. Open **Live Tracking** and select the user's vehicle. The route is drawn from supported city hubs and the marker advances according to the journey duration.
+5. Use **Risk Analysis**, **Fuel Analytics**, and **Reports** after adding the corresponding telemetry records.
+
+CSV import is intentionally not part of the user workflow. Manual entry keeps ownership, validation, and research-paper demonstrations consistent.
 The supplied vehicles, drivers, GPS, journeys, and fuel CSVs do not contain accident or route-anomaly outcome labels. They support fleet operations and dashboards, but should not be presented as labeled accident-training examples. With the current supplied data, the trained model's holdout accuracy is about 68%; this is a route-anomaly signal, not a validated real-world accident forecast. Add reviewed incident outcomes before using it for safety decisions.
 
 The model reports an anomaly probability and groups it into LOW (<35%), MEDIUM (35–64%), or HIGH (65%+). If the saved model is unavailable, the API uses a rule-based fallback.
@@ -336,7 +349,6 @@ The model reports an anomaly probability and groups it into LOW (<35%), MEDIUM (
 - Real-time KPI cards
 - Quick actions
 - Recent activity feed
-- CSV import functionality
 
 ### Vehicle Tracking
 - Interactive Leaflet map
@@ -379,14 +391,14 @@ This starts the frontend at `http://localhost:5174` and the backend at `http://l
 
 ### Real-World Operating Model
 
-This project is a fleet supervisor decision-support system. It uses imported vehicle, GPS, journey, driver-behavior, and fuel records to answer four operational questions:
+This project is a fleet supervisor decision-support system. It uses manually entered vehicle, GPS, journey, driver-behavior, and fuel records to answer four operational questions:
 
 1. Which vehicles have a current, stale, or historical location feed?
 2. Which driver behaviors require coaching or a pre-dispatch review?
 3. Which vehicles or journeys show poor fuel efficiency?
 4. What action should a fleet manager take next?
 
-The current ML model identifies behavior and route anomalies from available historical data. It should be presented as an early-warning signal, not as a guaranteed accident prediction. True live tracking requires an IoT/GPS ingestion service that continuously writes fresh records; the current CSV workflow is suitable for historical analysis and demonstration.
+The current ML model identifies behavior and route anomalies from available historical data. It should be presented as an early-warning signal, not as a guaranteed accident prediction. True live tracking requires an IoT/GPS ingestion service that continuously writes fresh records; manual entry and journey simulation are suitable for research demonstrations.
 
 **Terminal 1 - Backend:**
 ```bash
@@ -405,7 +417,7 @@ npm run dev
 
 - **Frontend**: http://localhost:5174
 - **Backend API**: http://localhost:5000
-- **Default Login**: admin / admin123
+- **Account setup**: Register a new user from the application
 
 ---
 
@@ -418,9 +430,6 @@ pip install -r requirements.txt
 
 # Initialize database
 python init_db.py
-
-# Import sample data
-python import_data.py
 
 # Update sample data
 python update_sample_data.py

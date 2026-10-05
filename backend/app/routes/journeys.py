@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from app.models import Journey, Vehicle, Driver
 from app.database.db import db
+from app.utils.auth import current_user_id
 import math
 
 journeys_bp = Blueprint('journeys', __name__)
@@ -9,13 +10,13 @@ journeys_bp = Blueprint('journeys', __name__)
 @journeys_bp.route('/', methods=['GET'])
 @jwt_required()
 def get_journeys():
-    journeys = Journey.query.order_by(Journey.start_time.desc()).all()
+    journeys = Journey.query.filter_by(user_id=current_user_id()).order_by(Journey.start_time.desc()).all()
     return jsonify([j.to_dict() for j in journeys]), 200
 
 @journeys_bp.route('/<int:id>', methods=['GET'])
 @jwt_required()
 def get_journey(id):
-    journey = Journey.query.get_or_404(id)
+    journey = Journey.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     return jsonify(journey.to_dict()), 200
 
 @journeys_bp.route('/', methods=['POST'])
@@ -40,8 +41,9 @@ def create_journey():
     except (TypeError, ValueError):
         return jsonify({'error': 'Choose a valid vehicle and driver.'}), 400
 
-    vehicle = db.session.get(Vehicle, vehicle_id)
-    driver = db.session.get(Driver, driver_id)
+    owner_id = current_user_id()
+    vehicle = Vehicle.query.filter_by(id=vehicle_id, user_id=owner_id).first()
+    driver = Driver.query.filter_by(id=driver_id, user_id=owner_id).first()
     if not vehicle:
         return jsonify({'error': 'Selected vehicle was not found. Refresh the vehicle list.'}), 404
     if not driver:
@@ -80,6 +82,7 @@ def create_journey():
         return jsonify({'error': 'Invalid journey status.'}), 400
 
     journey = Journey(
+        user_id=owner_id,
         journey_id=journey_id,
         vehicle_id=vehicle.id,
         driver_id=driver.id,
@@ -109,7 +112,7 @@ def create_journey():
 @journeys_bp.route('/<int:id>', methods=['PUT'])
 @jwt_required()
 def update_journey(id):
-    journey = Journey.query.get_or_404(id)
+    journey = Journey.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     data = request.get_json(silent=True) or {}
 
     from datetime import datetime
@@ -140,7 +143,7 @@ def update_journey(id):
 @journeys_bp.route('/<int:id>', methods=['DELETE'])
 @jwt_required()
 def delete_journey(id):
-    journey = Journey.query.get_or_404(id)
+    journey = Journey.query.filter_by(id=id, user_id=current_user_id()).first_or_404()
     db.session.delete(journey)
     db.session.commit()
     return jsonify({'message': 'Journey deleted'}), 200

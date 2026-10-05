@@ -44,6 +44,13 @@ const vehicleIcon = (status, highlighted = false) => {
   });
 };
 
+const destinationIcon = L.divIcon({
+  className: '',
+  html: '<div style="width:16px;height:16px;background:#111827;border:3px solid #fff;border-radius:50%;box-shadow:0 0 0 5px rgba(17,24,39,0.2);"></div>',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
+});
+
 /* ── Helper: recenter map ───────────────────────────────────── */
 function RecenterMap({ center, zoom }) {
   const map = useMap();
@@ -76,42 +83,6 @@ const ROUTE_HUBS = {
   chennai: [13.0827, 80.2707], kolkata: [22.5726, 88.3639],
 };
 
-const DEMO_FLEET_POSITIONS = [
-  [28.6139, 77.2090], [19.0760, 72.8777], [12.9716, 77.5946],
-  [22.5726, 88.3639], [17.3850, 78.4867], [23.0225, 72.5714],
-  [18.5204, 73.8567], [13.0827, 80.2707], [26.9124, 75.7873],
-  [26.8467, 80.9462],
-];
-
-function demoFleetPosition(index, tick = 0) {
-  const base = DEMO_FLEET_POSITIONS[index % DEMO_FLEET_POSITIONS.length];
-  const phase = (tick + index * 19) / 18;
-  return [base[0] + Math.sin(phase) * 0.035, base[1] + Math.cos(phase) * 0.035];
-}
-
-const DEMO_FLEET = DEMO_FLEET_POSITIONS.map((_, index) => ({
-  vehicle: {
-    id: index + 1,
-    vehicle_id: `VH-${String(index + 1).padStart(3, '0')}`,
-    registration_number: `MH-${String(12 + index).padStart(2, '0')}-AB-${String(1234 + index).padStart(4, '0')}`,
-    vehicle_type: index % 3 === 0 ? 'Truck' : index % 3 === 1 ? 'Van' : 'Bus',
-    status: index % 4 === 0 ? 'IDLE' : 'ACTIVE',
-    current_speed: 35 + (index * 7) % 45,
-    fuel_level: 58 + (index * 4) % 40,
-    risk_level: index % 5 === 0 ? 'MEDIUM' : 'LOW',
-  },
-  driver: {
-    id: index + 1,
-    driver_id: `DR-${String(index + 1).padStart(3, '0')}`,
-    name: ['Aarav Patil', 'Rohan Sharma', 'Vikram Singh', 'Neha Joshi', 'Aditya More'][index % 5],
-    status: 'ACTIVE',
-    phone: '+91 98765 43210',
-  },
-  latest_gps: null,
-  active_journey: null,
-  feed_status: 'NO_DATA',
-  age_seconds: null,
-}));
 
 function hubPosition(location) {
   const name = String(location || '').toLowerCase();
@@ -159,7 +130,6 @@ const Tracking = () => {
   const [fleetLoading, setFleetLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [demoTick, setDemoTick] = useState(0);
 
   /* Map center */
   const [mapCenter, setMapCenter] = useState(null);
@@ -169,8 +139,6 @@ const Tracking = () => {
   const completedJourneyRef = useRef(null);
 
   const intervalRef = useRef(null);
-  const displayTrackingData = trackingData.length ? trackingData : DEMO_FLEET;
-  const displayDriverData = driverData.length ? driverData : DEMO_FLEET.map((item) => item.driver);
 
   /* ── Fleet data polling ─────────────────────────────────── */
   const fetchFleet = useCallback(async () => {
@@ -191,16 +159,11 @@ const Tracking = () => {
   }, [fetchFleet]);
 
   useEffect(() => {
-    const timer = setInterval(() => setDemoTick((value) => value + 1), 1500);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
     if (!selectedVehicle) return;
-    const refreshedSelection = displayTrackingData.find((item) => item.vehicle.id === selectedVehicle.vehicle.id);
+    const refreshedSelection = trackingData.find((item) => item.vehicle.id === selectedVehicle.vehicle.id);
     if (refreshedSelection) setSelectedVehicle(refreshedSelection);
     else setSelectedVehicle(null);
-  }, [displayTrackingData, selectedVehicle]);
+  }, [trackingData, selectedVehicle]);
 
   /* Simulate an active journey between its known hubs using elapsed time. */
   useEffect(() => {
@@ -245,9 +208,9 @@ const Tracking = () => {
   const defaultCenter = [22.5937, 78.9629];
 
   /* ── Derived: stat counts ───────────────────────────────── */
-  const activeCount  = displayTrackingData.filter(d => d.vehicle.status === 'ACTIVE').length;
-  const liveCount    = displayTrackingData.filter(d => d.feed_status === 'LIVE').length;
-  const offlineCount = displayTrackingData.filter(d => d.feed_status === 'NO_DATA').length;
+  const activeCount  = trackingData.filter(d => d.vehicle.status === 'ACTIVE').length;
+  const liveCount    = trackingData.filter(d => d.feed_status === 'LIVE').length;
+  const offlineCount = trackingData.filter(d => d.feed_status === 'NO_DATA').length;
   const selectedJourney = selectedVehicle?.active_journey;
   const selectedDestination = selectedJourney ? hubPosition(selectedJourney.end_location) : null;
   const selectedStart = selectedJourney
@@ -272,15 +235,11 @@ const Tracking = () => {
       </div>
 
       {/* Stats bar */}
-      {!trackingData.length && !fleetLoading && (
-        <div className="tracking-demo-notice" role="status">
-          <span className="live-dot pulse" /> Demo fleet preview: vehicle markers are moving across India until live GPS data is available.
-        </div>
-      )}
+      {!trackingData.length && !fleetLoading && <div className="tracking-empty"><MdDirectionsCar size={28} /><b>No vehicles found</b><p>Import or add vehicles to track them here.</p></div>}
       <div className="tracking-stats-bar">
         <div className="tracking-stat">
           <MdDirectionsCar size={16} />
-          <span>{displayTrackingData.length}</span>
+          <span>{trackingData.length}</span>
           <small>Total Vehicles</small>
         </div>
         <div className="tracking-stat active">
@@ -345,7 +304,7 @@ const Tracking = () => {
             {selectedJourney && journeyPosition && selectedDestination && (
               <>
                 <Polyline positions={[selectedStart, selectedDestination]} pathOptions={{ color: '#818cf8', weight: 4, opacity: 0.5, dashArray: '8, 8' }} />
-                <Marker position={selectedDestination} icon={userIcon}>
+                <Marker position={selectedDestination} icon={destinationIcon}>
                   <Popup><strong>Destination</strong><br />{selectedJourney.end_location}</Popup>
                 </Marker>
                 <Marker position={journeyPosition} icon={vehicleIcon('ACTIVE')}>
@@ -355,12 +314,11 @@ const Tracking = () => {
             )}
 
             {/* Fleet markers */}
-            {displayTrackingData.map((d) => {
+            {trackingData.map((d) => {
               const hasGps = d.latest_gps && d.latest_gps.latitude != null && d.latest_gps.longitude != null;
-              const basePosition = hasGps
-                ? [d.latest_gps.latitude, d.latest_gps.longitude]
-                : demoFleetPosition(d.vehicle.id - 1, demoTick);
               const isSimulated = selectedVehicle?.vehicle.id === d.vehicle.id && journeyPosition;
+              if (!hasGps && !isSimulated) return null;
+              const basePosition = hasGps ? [d.latest_gps.latitude, d.latest_gps.longitude] : journeyPosition;
               const markerPosition = isSimulated ? journeyPosition : basePosition;
               const isFocused = selectedVehicle?.vehicle.id === d.vehicle.id;
               return (
@@ -380,10 +338,10 @@ const Tracking = () => {
                       <strong style={{ fontSize: '14px', color: '#1e293b' }}>{d.vehicle.vehicle_id}</strong>
                       <div style={{ color: '#64748b', marginBottom: '4px' }}>{d.vehicle.registration_number || 'No reg.'}</div>
                       {d.driver && <div><strong>Driver:</strong> {d.driver.name}</div>}
-                      <div><strong>Status:</strong> {d.vehicle.status} ({hasGps ? d.feed_status : 'DEMO GPS'})</div>
+                      <div><strong>Status:</strong> {d.vehicle.status} ({hasGps ? d.feed_status : 'ROUTE SIMULATION'})</div>
                       <div><strong>Speed:</strong> {Number(d.vehicle.current_speed || 0).toFixed(0)} km/h</div>
                       <div><strong>Fuel Level:</strong> {Number(d.vehicle.fuel_level || 0).toFixed(0)}%</div>
-                      {!hasGps && <div style={{ color: '#64748b', marginTop: '5px' }}>Demo fleet location for map preview</div>}
+                      {!hasGps && <div style={{ color: '#64748b', marginTop: '5px' }}>Journey route simulation</div>}
                       {d.active_journey && (
                         <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid #e2e8f0' }}>
                           <span style={{ color: '#6366f1', fontWeight: 600 }}>Active Journey ({d.active_journey.journey_id}):</span>
@@ -411,14 +369,14 @@ const Tracking = () => {
         <div className="tracking-fleet-list">
           <div className="fleet-list-header">
             <h3>Fleet status</h3>
-            <small>{displayTrackingData.length} vehicles · {displayDriverData.filter((driver) => driver.status === 'ACTIVE').length} active drivers</small>
+            <small>{trackingData.length} vehicles · {driverData.filter((driver) => driver.status === 'ACTIVE').length} active drivers</small>
           </div>
           {fleetLoading ? (
             <div className="tracking-loading">
               <span className="loading-spinner" style={{ color: '#9c70ff' }} />
               <span>Loading fleet…</span>
             </div>
-          ) : displayTrackingData.length === 0 && !displayDriverData.some((driver) => driver.status === 'ACTIVE') ? (
+          ) : trackingData.length === 0 && !driverData.some((driver) => driver.status === 'ACTIVE') ? (
             <div className="tracking-empty">
               <MdDirectionsCar size={32} />
               <b>No vehicles found</b>
@@ -426,17 +384,14 @@ const Tracking = () => {
             </div>
           ) : (
             <div className="fleet-items">
-              {displayTrackingData.length === 0 && <div className="tracking-empty"><MdDirectionsCar size={28} /><b>No vehicles found</b><p>Import or add vehicles to track them here.</p></div>}
-              {displayTrackingData.map((d) => (
+              {trackingData.length === 0 && <div className="tracking-empty"><MdDirectionsCar size={28} /><b>No vehicles found</b><p>Add a vehicle, driver, and journey from Data Entry to start tracking.</p></div>}
+              {trackingData.map((d) => (
                 <button
                   key={d.vehicle.id}
                   className={`fleet-item ${selectedVehicle?.vehicle.id === d.vehicle.id ? 'is-selected' : ''}`}
                   onClick={() => {
                     setSelectedVehicle(d);
-                    const position = d.latest_gps
-                      ? [d.latest_gps.latitude, d.latest_gps.longitude]
-                      : demoFleetPosition(d.vehicle.id - 1, demoTick);
-                    setFlyTo(position);
+                    if (d.latest_gps) setFlyTo([d.latest_gps.latitude, d.latest_gps.longitude]);
                   }}
                 >
                   <div className="fleet-item-top">
@@ -475,16 +430,16 @@ const Tracking = () => {
                   )}
                   {!d.latest_gps && (
                     <div className="fleet-item-coords no-gps">
-                      <MdLocationOn size={11} /> Demo GPS · India map preview
+                      <MdLocationOn size={11} /> Waiting for GPS data
                     </div>
                   )}
                 </button>
               ))}
               <div className="fleet-list-header" style={{ margin: '12px -12px 0', borderTop: '1px solid rgba(255,255,255,.08)' }}>
                 <h3>Active drivers</h3>
-                <small>{displayDriverData.filter((driver) => driver.status === 'ACTIVE').length}</small>
+                <small>{driverData.filter((driver) => driver.status === 'ACTIVE').length}</small>
               </div>
-              {displayDriverData.filter((driver) => driver.status === 'ACTIVE').map((driver) => (
+              {driverData.filter((driver) => driver.status === 'ACTIVE').map((driver) => (
                 <div key={driver.id} className="fleet-item" style={{ cursor: 'default' }}>
                   <div className="fleet-item-top">
                     <span className="fleet-item-id">{driver.name}</span>
