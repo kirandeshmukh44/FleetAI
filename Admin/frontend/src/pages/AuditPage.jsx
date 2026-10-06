@@ -14,6 +14,8 @@ const ACTION_TONES = {
   deleted: 'danger',
   resolved: 'success',
   changed: 'info',
+  login: 'info',
+  logout: 'neutral',
 };
 
 const AuditPage = () => {
@@ -37,9 +39,10 @@ const AuditPage = () => {
       key: 'action',
       header: 'Action',
       render: (row) => {
-        const [entity = 'action'] = String(row.action).split('.');
+        const parts = String(row.action).split('.');
+        const verb = (parts[parts.length - 1] || 'action').toLowerCase();
         return (
-          <span className={`badge badge-${ACTION_TONES[entity] || 'neutral'}`}>
+          <span className={`badge badge-${ACTION_TONES[verb] || 'neutral'}`}>
             {row.action}
           </span>
         );

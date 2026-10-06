@@ -585,6 +585,11 @@ html[data-theme='light'] .badge-danger,
 html[data-theme='light'] .badge-critical,
 html[data-theme='light'] .badge-stopped { color: #b91c1c; }
 html[data-theme='light'] .badge-superadmin { color: #0369a1; }
+html[data-theme='light'] .badge-neutral,
+html[data-theme='light'] .badge-info { color: #374151; border-color: rgba(55, 65, 81, 0.28); background: rgba(55, 65, 81, 0.1); }
+html[data-theme='light'] .badge-offline { color: #4b5563; border-color: rgba(75, 85, 99, 0.28); background: rgba(75, 85, 99, 0.1); }
+html[data-theme='light'] .badge-inactive,
+html[data-theme='light'] .badge-on_leave { color: #6b7280; border-color: rgba(107, 114, 128, 0.28); background: rgba(107, 114, 128, 0.1); }
 
 /* ---- Feedback ------------------------------------- */
 .alert {

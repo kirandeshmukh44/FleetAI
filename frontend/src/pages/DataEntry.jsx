@@ -469,6 +469,10 @@ const DataEntry = () => {
     if (formErrors[name]) setFormErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
+  /* ── Normalise helper ────────────────────────────────────── */
+  /** Normalise code/number: uppercase, strip spaces and dashes */
+  const normaliseCode = (r) => String(r || '').trim().toUpperCase().replace(/[\s-]/g, '');
+
   /* ── Validation ──────────────────────────────────────────── */
   const validate = () => {
     const errs = {};
@@ -493,17 +497,36 @@ const DataEntry = () => {
 
     // Vehicle-specific validations
     if (activeTab === 'vehicle') {
-      // Registration number validation (Indian format: MH12AB1234)
+      // Registration number validation (Indian format: MH12AB1234 or MH-12-AB-1234)
       if (formData.registration_number) {
         const regUpper = String(formData.registration_number).trim().toUpperCase();
         if (!VALIDATION.registration.test(regUpper)) {
           errs.registration_number = 'Invalid format. Use format like MH12AB1234 or MH-12-AB-1234';
+        } else {
+          // Exact duplicate check across existing vehicles (comparing full normalized registration)
+          const normNew = normaliseCode(regUpper);
+          const duplicate = vehicles.find((v) => {
+            if (editingId && String(v.id) === String(editingId)) return false;
+            return normaliseCode(v.registration_number) === normNew;
+          });
+          if (duplicate) {
+            errs.registration_number = `Registration number ${duplicate.registration_number} already exists!`;
+          }
         }
       }
       // Vehicle ID validation
       if (formData.vehicle_id) {
-        if (!VALIDATION.vehicleId.test(String(formData.vehicle_id).trim().toUpperCase())) {
+        const vIdUpper = String(formData.vehicle_id).trim().toUpperCase();
+        if (!VALIDATION.vehicleId.test(vIdUpper)) {
           errs.vehicle_id = 'Invalid format. Use format like VH-001';
+        } else {
+          const duplicate = vehicles.find((v) => {
+            if (editingId && String(v.id) === String(editingId)) return false;
+            return normaliseCode(v.vehicle_id) === normaliseCode(vIdUpper);
+          });
+          if (duplicate) {
+            errs.vehicle_id = `Vehicle ID ${duplicate.vehicle_id} already exists!`;
+          }
         }
       }
     }
@@ -512,8 +535,17 @@ const DataEntry = () => {
     if (activeTab === 'driver') {
       // Driver ID validation
       if (formData.driver_id) {
-        if (!VALIDATION.driverId.test(String(formData.driver_id).trim().toUpperCase())) {
+        const dIdUpper = String(formData.driver_id).trim().toUpperCase();
+        if (!VALIDATION.driverId.test(dIdUpper)) {
           errs.driver_id = 'Invalid format. Use format like DR-001';
+        } else {
+          const duplicate = drivers.find((d) => {
+            if (editingId && String(d.id) === String(editingId)) return false;
+            return normaliseCode(d.driver_id) === normaliseCode(dIdUpper);
+          });
+          if (duplicate) {
+            errs.driver_id = `Driver ID ${duplicate.driver_id} already exists!`;
+          }
         }
       }
       // Phone validation (Indian format)
@@ -524,9 +556,9 @@ const DataEntry = () => {
       }
       // License number validation (Indian format)
       if (formData.license_number) {
-        const licensePattern = /^[A-Z]{2}\d{2}\s?\d{11}$/;
+        const licensePattern = /^[A-Z]{2}[- ]?\d{2}[- ]?\d{11}$/;
         const licenseUpper = String(formData.license_number).trim().toUpperCase();
-        if (!licensePattern.test(licenseUpper) && !licensePatternCompact.test(licenseUpper)) {
+        if (!licensePattern.test(licenseUpper)) {
           errs.license_number = 'Invalid format. Use format like MH0120220012345';
         }
       }
@@ -548,6 +580,30 @@ const DataEntry = () => {
 
     return errs;
   };
+
+  // Real-time registration number availability check (exact match only)
+  const regAvailability = useMemo(() => {
+    if (activeTab !== 'vehicle') return null;
+    const val = formData.registration_number;
+    if (!val || String(val).trim().length === 0) return null;
+    const regUpper = String(val).trim().toUpperCase();
+    const norm = normaliseCode(regUpper);
+    if (norm.length < 4) return null; // Wait until some characters entered
+
+    const formatValid = VALIDATION.registration.test(regUpper);
+    const existing = vehicles.find((v) => {
+      if (editingId && String(v.id) === String(editingId)) return false;
+      return normaliseCode(v.registration_number) === norm;
+    });
+
+    if (existing) {
+      return { status: 'taken', message: `❌ ${existing.registration_number} is already registered` };
+    }
+    if (formatValid) {
+      return { status: 'available', message: `✅ ${regUpper} is available` };
+    }
+    return null;
+  }, [activeTab, formData.registration_number, vehicles, editingId]);
 
   /* ── Submit ──────────────────────────────────────────────── */
   const handleSubmit = async (e) => {
@@ -575,15 +631,14 @@ const DataEntry = () => {
         await api.post(cfg.apiPath, payload);
         setNotice({ type: 'success', msg: `New ${activeTab} added successfully.` });
       }
+      // Always close form immediately upon successful save
       closeForm();
-      await fetchRecords();
+      fetchRecords().catch(() => {});
       if (activeTab === 'vehicle' || activeTab === 'journey') {
-        const { data } = await api.get('/vehicles');
-        setVehicles(data || []);
+        api.get('/vehicles').then((res) => setVehicles(res.data || [])).catch(() => {});
       }
       if (activeTab === 'driver' || activeTab === 'journey') {
-        const { data } = await api.get('/drivers');
-        setDrivers(data || []);
+        api.get('/drivers').then((res) => setDrivers(res.data || [])).catch(() => {});
       }
     } catch (err) {
       const msg = err.response?.data?.error || err.response?.data?.message || 'Submission failed. Check your data and try again.';
@@ -801,6 +856,21 @@ const DataEntry = () => {
                       vehicleList={vehicles}
                       driverList={drivers}
                     />
+                    {field.name === 'registration_number' && activeTab === 'vehicle' && regAvailability && (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          marginTop: '5px',
+                          color: regAvailability.status === 'available' ? '#4ade80' : '#f87171',
+                        }}
+                      >
+                        {regAvailability.message}
+                      </span>
+                    )}
                     {formErrors[field.name] && (
                       <span className="de-field-error">{formErrors[field.name]}</span>
                     )}
@@ -808,7 +878,13 @@ const DataEntry = () => {
                 ))}
               </div>
               {activeTab === 'journey' && formData.start_location && formData.end_location && !autoFilled && (
-                <p className="de-form-hint">We couldn?t match both locations to a known hub. Enter distance, duration, and fuel manually, or use a recognized city such as Mumbai, Pune, Nashik, or Thane.</p>
+                <p className="de-form-hint">We couldn't match both locations to a known hub. Enter distance, duration, and fuel manually, or use a recognized city such as Mumbai, Pune, Nashik, or Thane.</p>
+              )}
+              {notice.msg && notice.type === 'error' && (
+                <div className="de-notice error" style={{ marginTop: '14px' }}>
+                  <span className="de-notice-icon"><MdWarning size={16} /></span>
+                  <span>{notice.msg}</span>
+                </div>
               )}
 
               <div className="de-form-actions">

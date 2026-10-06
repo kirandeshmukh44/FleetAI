@@ -1,13 +1,18 @@
 from datetime import datetime
 from app.database.db import db
+from sqlalchemy import UniqueConstraint
 
 class Vehicle(db.Model):
     __tablename__ = 'vehicles'
+    __table_args__ = (
+        UniqueConstraint('user_id', 'vehicle_id', name='uq_vehicles_user_vehicle_id'),
+        UniqueConstraint('user_id', 'registration_number', name='uq_vehicles_user_registration_number'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    vehicle_id = db.Column(db.String(50), unique=True, nullable=False)
-    registration_number = db.Column(db.String(50), unique=True, nullable=False)
+    vehicle_id = db.Column(db.String(50), nullable=False)
+    registration_number = db.Column(db.String(50), nullable=False)
     vehicle_type = db.Column(db.String(50), nullable=False)
     make = db.Column(db.String(100))
     model = db.Column(db.String(100))

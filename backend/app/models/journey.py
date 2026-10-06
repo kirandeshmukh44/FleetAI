@@ -1,12 +1,16 @@
 from datetime import datetime
 from app.database.db import db
+from sqlalchemy import UniqueConstraint
 
 class Journey(db.Model):
     __tablename__ = 'journeys'
+    __table_args__ = (
+        UniqueConstraint('user_id', 'journey_id', name='uq_journeys_user_journey_id'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    journey_id = db.Column(db.String(50), unique=True, nullable=False)
+    journey_id = db.Column(db.String(50), nullable=False)
     vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=False)
     driver_id = db.Column(db.Integer, db.ForeignKey('drivers.id'), nullable=False)
     start_time = db.Column(db.DateTime, nullable=False)

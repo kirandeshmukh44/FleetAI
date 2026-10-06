@@ -1,16 +1,22 @@
 from datetime import datetime
 from app.database.db import db
+from sqlalchemy import UniqueConstraint
 
 class Driver(db.Model):
     __tablename__ = 'drivers'
+    __table_args__ = (
+        UniqueConstraint('user_id', 'driver_id', name='uq_drivers_user_driver_id'),
+        UniqueConstraint('user_id', 'email', name='uq_drivers_user_email'),
+        UniqueConstraint('user_id', 'license_number', name='uq_drivers_user_license_number'),
+    )
     
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    driver_id = db.Column(db.String(50), unique=True, nullable=False)
+    driver_id = db.Column(db.String(50), nullable=False)
     name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True)
+    email = db.Column(db.String(120))
     phone = db.Column(db.String(20))
-    license_number = db.Column(db.String(50), unique=True)
+    license_number = db.Column(db.String(50))
     license_expiry = db.Column(db.Date)
     assigned_vehicle_id = db.Column(db.Integer, db.ForeignKey('vehicles.id'), nullable=True)
     total_journeys = db.Column(db.Integer, default=0)

@@ -1587,6 +1587,51 @@ html[data-theme='light'] .leaflet-popup-content-wrapper,
 html[data-theme='light'] .leaflet-popup-tip { background: #ffffff; color: #172033; }
 html[data-theme='light'] .app-content { color: #172033; }
 
+/* ---- Reports Page Light Mode -------------------- */
+html[data-theme='light'] .report-preview {
+  background: #ffffff;
+  border-color: #d4deea;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+}
+html[data-theme='light'] .report-preview-header {
+  color: #64748b;
+}
+html[data-theme='light'] .report-status {
+  color: #0d9488;
+}
+html[data-theme='light'] .report-metric-grid div {
+  border-left-color: #1677ff;
+}
+html[data-theme='light'] .report-metric-grid span {
+  color: #64748b;
+}
+html[data-theme='light'] .report-metric-grid strong {
+  color: #0f172a;
+}
+html[data-theme='light'] .report-type-button {
+  background: #ffffff;
+  border-color: #d4deea;
+  color: #475569;
+}
+html[data-theme='light'] .report-type-button:hover {
+  background: #f1f6fa;
+  border-color: #cbd5e1;
+  color: #0754b8;
+}
+html[data-theme='light'] .report-type-button.bg-electric-blue\/20 {
+  background: rgba(22, 119, 255, 0.1) !important;
+  border-color: #1677ff !important;
+  color: #0754b8 !important;
+}
+html[data-theme='light'] .btn-outline {
+  border-color: #d4deea !important;
+  color: #334155 !important;
+}
+html[data-theme='light'] .btn-outline:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
 @media (max-width: 800px) {
   .theme-toggle span { display: none; }
   .theme-toggle { padding: 0 9px; }

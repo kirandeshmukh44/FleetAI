@@ -103,14 +103,6 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <div className="login-demo">
-          <strong>First time here?</strong>
-          <span>
-            Create the initial superadmin from the admin backend, then sign in with those credentials.
-          </span>
-          <code>python seed_admin.py</code>
-        </div>
-
         <p className="login-foot">FleetAI · AI-Based Smart Transportation Platform</p>
       </div>
     </div>

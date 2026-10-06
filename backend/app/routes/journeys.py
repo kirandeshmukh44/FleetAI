@@ -96,7 +96,7 @@ def create_journey():
     journey_id = journey_id.upper()
     if not JOURNEY_ID_RE.fullmatch(journey_id):
         return jsonify({'error': 'Journey ID must use format JR-001.'}), 400
-    if Journey.query.filter_by(journey_id=journey_id).first():
+    if Journey.query.filter_by(journey_id=journey_id, user_id=current_user_id()).first():
         return jsonify({'error': 'Journey ID already exists. Choose another ID.'}), 409
 
     try:
